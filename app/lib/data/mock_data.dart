@@ -247,6 +247,76 @@ class MockData {
     {'month': 'Dec', 'value': 85},
   ];
 
+  static const List<Map<String, dynamic>> pieChartData = [
+    {'name': 'Consultations', 'value': 45, 'color': 0xFF6366F1},
+    {'name': 'Lab Tests', 'value': 25, 'color': 0xFF10B981},
+    {'name': 'Medications', 'value': 20, 'color': 0xFFF59E0B},
+    {'name': 'Follow-ups', 'value': 10, 'color': 0xFFEF4444},
+  ];
+
+  static List<DateTime> getAppointmentDates() {
+    return [
+      DateTime(2024, 10, 20),
+      DateTime(2024, 10, 22),
+      DateTime(2024, 10, 25),
+      DateTime(2024, 10, 28),
+      DateTime(2024, 11, 2),
+      DateTime(2024, 11, 5),
+    ];
+  }
+
+  static Map<String, dynamic>? getAppointmentForDate(DateTime date) {
+    final appointments = [
+      {
+        'date': DateTime(2024, 10, 20),
+        'doctorName': 'Dr. Sarah Wilson',
+        'specialty': 'Cardiology',
+        'hospital': 'Apollo Hospital',
+        'time': '10:00 AM',
+        'issue': 'Chest pain and irregular heartbeat',
+        'status': 'Confirmed',
+      },
+      {
+        'date': DateTime(2024, 10, 22),
+        'doctorName': 'Dr. Michael Chen',
+        'specialty': 'Neurology',
+        'hospital': 'Fortis Hospital',
+        'time': '2:30 PM',
+        'issue': 'Persistent headaches and dizziness',
+        'status': 'Pending',
+      },
+      {
+        'date': DateTime(2024, 10, 25),
+        'doctorName': 'Dr. Priya Sharma',
+        'specialty': 'Dermatology',
+        'hospital': 'Max Healthcare',
+        'time': '11:15 AM',
+        'issue': 'Skin rash and allergic reactions',
+        'status': 'Confirmed',
+      },
+      {
+        'date': DateTime(2024, 10, 28),
+        'doctorName': 'Dr. James Rodriguez',
+        'specialty': 'Orthopedics',
+        'hospital': 'Narayana Health',
+        'time': '9:00 AM',
+        'issue': 'Lower back pain and stiffness',
+        'status': 'Confirmed',
+      },
+    ];
+    
+    for (var appointment in appointments) {
+      final appointmentDate = appointment['date'] as DateTime?;
+      if (appointmentDate != null &&
+          appointmentDate.year == date.year &&
+          appointmentDate.month == date.month &&
+          appointmentDate.day == date.day) {
+        return appointment;
+      }
+    }
+    return null;
+  }
+
   static const List<String> states = [
     'Andhra Pradesh',
     'Arunachal Pradesh',
