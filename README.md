@@ -34,7 +34,7 @@ Syncure App is a modern healthcare platform designed to streamline patient manag
 
 /syncure-app
 /backend    -> NestJS backend project
-/mobile     -> Flutter app for patients
+/app     -> Flutter app for patients
 README.md   -> This file
 .gitignore  -> Root ignore rules for Node & Flutter
 
@@ -46,7 +46,7 @@ README.md   -> This file
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/syncure-app.git
+git clone https://github.com/ad956/syncure-app.git
 cd syncure-app
 ````
 
@@ -63,7 +63,7 @@ pnpm run start:dev # Start NestJS in development mode
 ### 3. Mobile App (Flutter) Setup
 
 ```bash
-cd ../mobile
+cd ../app
 flutter pub get    # Install Flutter dependencies
 flutter run        # Run the Flutter app on connected device/emulator
 ```
@@ -76,5 +76,5 @@ You can add optional root scripts to start both projects easily:
 
 ```bash
 pnpm dev:backend   # Starts NestJS backend
-pnpm dev:mobile    # Runs Flutter app
+pnpm dev:app    # Runs Flutter app
 ```
