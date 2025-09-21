@@ -51,24 +51,14 @@ class MobileLayout extends StatelessWidget {
         ],
       ),
       actions: [
-        Container(
-          margin: const EdgeInsets.only(right: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF31260).withOpacity(0.1),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: const Color(0xFFF31260).withOpacity(0.3),
-              width: 1.5,
-            ),
-          ),
-          child: IconButton(
-            onPressed: () {
-              NovuService.showNotifications(context);
-            },
-            icon: const Icon(Icons.notifications_outlined, size: 20),
-            style: IconButton.styleFrom(
-              foregroundColor: const Color(0xFFF31260),
-            ),
+        IconButton(
+          onPressed: () {
+            NovuService.showNotifications(context);
+          },
+          icon: const Icon(Icons.notifications_outlined, size: 24),
+          style: IconButton.styleFrom(
+            foregroundColor: const Color(0xFF6B7280),
+            backgroundColor: Colors.transparent,
           ),
         ),
         Container(
