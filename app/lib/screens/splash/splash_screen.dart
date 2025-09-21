@@ -100,21 +100,21 @@ class _SplashScreenState extends State<SplashScreen>
                       const Text(
                         'Syncure',
                         style: TextStyle(
-                          fontSize: 42,
-                          fontWeight: FontWeight.w800,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
                           color: Color(0xFF1F2937),
-                          letterSpacing: -1.0,
+                          letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       const Text(
                         'The New Era of Healthcare Management',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 14,
                           color: Color(0xFF6B7280),
-                          fontWeight: FontWeight.w500,
-                          height: 1.4,
+                          fontWeight: FontWeight.w400,
+                          height: 1.3,
                         ),
                       ),
                     ],

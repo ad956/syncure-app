@@ -68,13 +68,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         _selectedDay = selectedDay;
                         _focusedDay = focusedDay;
                       });
-                    }),
+                    }, context),
                     const SizedBox(height: 16),
                     buildTabSection(_selectedTabIndex, (index) {
                       setState(() {
                         _selectedTabIndex = index;
                       });
                     }),
+                    const SizedBox(height: 16),
+                    _buildPieCharts(),
                     const SizedBox(height: 16),
                     _buildHealthChart(),
                   ],
@@ -386,6 +388,166 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPieCharts() {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  'Health Activities',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 120,
+                  child: PieChart(
+                    PieChartData(
+                      sections: MockData.pieChartData.map((data) {
+                        return PieChartSectionData(
+                          value: data['value'].toDouble(),
+                          color: Color(data['color']),
+                          radius: 40,
+                          showTitle: false,
+                        );
+                      }).toList(),
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 30,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ...MockData.pieChartData.map((data) => Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: Color(data['color']),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${data['name']} ${data['value']}%',
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                )),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                const Text(
+                  'Monthly Visits',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  height: 120,
+                  child: PieChart(
+                    PieChartData(
+                      sections: [
+                        PieChartSectionData(
+                          value: 60,
+                          color: const Color(0xFF10B981),
+                          radius: 40,
+                          showTitle: false,
+                        ),
+                        PieChartSectionData(
+                          value: 25,
+                          color: const Color(0xFFF59E0B),
+                          radius: 40,
+                          showTitle: false,
+                        ),
+                        PieChartSectionData(
+                          value: 15,
+                          color: const Color(0xFFEF4444),
+                          radius: 40,
+                          showTitle: false,
+                        ),
+                      ],
+                      sectionsSpace: 2,
+                      centerSpaceRadius: 30,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Row(
+                  children: [
+                    Icon(Icons.circle, color: Color(0xFF10B981), size: 8),
+                    SizedBox(width: 6),
+                    Text('Completed 60%', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Row(
+                  children: [
+                    Icon(Icons.circle, color: Color(0xFFF59E0B), size: 8),
+                    SizedBox(width: 6),
+                    Text('Pending 25%', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Row(
+                  children: [
+                    Icon(Icons.circle, color: Color(0xFFEF4444), size: 8),
+                    SizedBox(width: 6),
+                    Text('Cancelled 15%', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 

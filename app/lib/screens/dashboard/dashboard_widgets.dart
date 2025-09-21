@@ -5,7 +5,9 @@ import '../../data/mock_data.dart';
 
 mixin DashboardWidgets {
   Widget buildCalendar(DateTime selectedDay, DateTime focusedDay,
-      Function(DateTime, DateTime) onDaySelected) {
+      Function(DateTime, DateTime) onDaySelected, BuildContext context) {
+    final appointmentDates = MockData.getAppointmentDates();
+    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -23,26 +25,15 @@ mixin DashboardWidgets {
         children: [
           Row(
             children: [
-              const Icon(Icons.wb_sunny, color: Color(0xFFFB923C), size: 20),
+              const Icon(Icons.calendar_today, color: Color(0xFF6366F1), size: 20),
               const SizedBox(width: 8),
               const Text(
-                'September',
+                'Appointments',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textPrimary,
                 ),
-              ),
-              const Spacer(),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.chevron_left),
-                iconSize: 20,
-              ),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.chevron_right),
-                iconSize: 20,
               ),
             ],
           ),
@@ -52,10 +43,43 @@ mixin DashboardWidgets {
             lastDay: DateTime.utc(2030, 12, 31),
             focusedDay: focusedDay,
             selectedDayPredicate: (day) => isSameDay(selectedDay, day),
-            onDaySelected: onDaySelected,
+            onDaySelected: (selectedDay, focusedDay) {
+              onDaySelected(selectedDay, focusedDay);
+              final appointment = MockData.getAppointmentForDate(selectedDay);
+              if (appointment != null) {
+                _showAppointmentPopup(context, appointment);
+              }
+            },
             calendarFormat: CalendarFormat.month,
             startingDayOfWeek: StartingDayOfWeek.sunday,
             headerVisible: false,
+            calendarBuilders: CalendarBuilders(
+              defaultBuilder: (context, day, focusedDay) {
+                final hasAppointment = appointmentDates.any((date) => 
+                  date.year == day.year && date.month == day.month && date.day == day.day);
+                
+                if (hasAppointment) {
+                  return Container(
+                    margin: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE95B7B).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0xFFE95B7B), width: 2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${day.day}',
+                        style: const TextStyle(
+                          color: Color(0xFFE95B7B),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+                return null;
+              },
+            ),
             calendarStyle: const CalendarStyle(
               outsideDaysVisible: false,
               weekendTextStyle: TextStyle(color: AppTheme.textPrimary),
@@ -82,14 +106,142 @@ mixin DashboardWidgets {
             ),
           ),
           const SizedBox(height: 16),
-          const Align(
-            alignment: Alignment.centerRight,
+          Row(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE95B7B),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Appointment dates',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAppointmentPopup(BuildContext context, Map<String, dynamic> appointment) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE95B7B).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.medical_services,
+                        color: Color(0xFFE95B7B),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Appointment Details',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            appointment['time'],
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, size: 20),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildDetailRow('Doctor:', appointment['doctorName']),
+                _buildDetailRow('Specialty:', appointment['specialty']),
+                _buildDetailRow('Hospital:', appointment['hospital']),
+                _buildDetailRow('Issue:', appointment['issue']),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: appointment['status'] == 'Confirmed' 
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    appointment['status'],
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: appointment['status'] == 'Confirmed' 
+                          ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
             child: Text(
-              'Have a good day',
-              style: TextStyle(
+              label,
+              style: const TextStyle(
                 fontSize: 14,
                 color: AppTheme.textSecondary,
-                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppTheme.textPrimary,
               ),
             ),
           ),
