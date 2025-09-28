@@ -15,6 +15,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     with TickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _otpController = TextEditingController();
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -116,18 +117,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               suffixIcon: Icons.email_outlined,
                             ),
                             const SizedBox(height: 20),
-                            _buildTextField(
-                              controller: _passwordController,
-                              hintText: 'Enter password',
-                              prefixIcon: Icons.lock_outline,
-                              suffixIcon: _obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
-                              obscureText: _obscurePassword,
-                              onSuffixTap: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final authState = ref.watch(authProvider);
+                                
+                                if (authState.otpSent) {
+                                  return _buildTextField(
+                                    controller: _otpController,
+                                    hintText: 'Enter OTP sent to your email',
+                                    prefixIcon: Icons.security,
+                                    suffixIcon: Icons.verified_user_outlined,
+                                  );
+                                }
+                                
+                                return _buildTextField(
+                                  controller: _passwordController,
+                                  hintText: 'Enter password',
+                                  prefixIcon: Icons.lock_outline,
+                                  suffixIcon: _obscurePassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                  obscureText: _obscurePassword,
+                                  onSuffixTap: () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                                );
                               },
                             ),
                             const SizedBox(height: 20),
@@ -146,50 +162,149 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                               ),
                             ),
                             const SizedBox(height: 20),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton(
-                                    onPressed: () => context.go('/dashboard'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF6B7280),
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final authState = ref.watch(authProvider);
+                                
+                                // Listen for auth state changes
+                                ref.listen(authProvider, (previous, next) {
+                                  if (next.user != null) {
+                                    context.go('/dashboard');
+                                  } else if (next.error != null) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(next.error!),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                });
+                                
+                                return Column(
+                                  children: [
+                                    if (authState.error != null)
+                                      Container(
+                                        padding: const EdgeInsets.all(12),
+                                        margin: const EdgeInsets.only(bottom: 16),
+                                        decoration: BoxDecoration(
+                                          color: Colors.red.shade50,
+                                          borderRadius: BorderRadius.circular(8),
+                                          border: Border.all(color: Colors.red.shade200),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(Icons.error_outline, color: Colors.red.shade600, size: 20),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                authState.error!,
+                                                style: TextStyle(color: Colors.red.shade600, fontSize: 14),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        onPressed: authState.isLoading ? null : () {
+                                          if (authState.otpSent) {
+                                            ref.read(authProvider.notifier).verifyOtp(
+                                              authState.email ?? _emailController.text,
+                                              _otpController.text,
+                                            );
+                                          } else {
+                                            ref.read(authProvider.notifier).login(
+                                              _emailController.text,
+                                              _passwordController.text,
+                                            );
+                                          }
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF6B7280),
+                                          padding: const EdgeInsets.symmetric(vertical: 16),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                        ),
+                                        child: authState.isLoading
+                                            ? const SizedBox(
+                                                height: 20,
+                                                width: 20,
+                                                child: CircularProgressIndicator(
+                                                  color: Colors.white,
+                                                  strokeWidth: 2,
+                                                ),
+                                              )
+                                            : Text(
+                                                authState.otpSent ? 'Verify OTP' : 'Sign In',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
                                       ),
                                     ),
-                                    child: const Text(
-                                      'Sign In',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
+                                    if (!authState.otpSent)
+                                      const SizedBox(width: 16),
+                                    if (!authState.otpSent)
+                                      Expanded(
+                                        child: OutlinedButton(
+                                          onPressed: authState.isLoading ? null : () {
+                                            ref.read(authProvider.notifier).demoLogin();
+                                          },
+                                          style: OutlinedButton.styleFrom(
+                                            padding: const EdgeInsets.symmetric(vertical: 16),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            side: const BorderSide(color: Color(0xFF6B7280)),
+                                          ),
+                                          child: const Text(
+                                            'Try Demo',
+                                            style: TextStyle(
+                                              color: Color(0xFF6B7280),
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
                                       ),
+                                  ],
                                     ),
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: OutlinedButton(
-                                    onPressed: () => context.go('/dashboard'),
-                                    style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(8),
+                                    if (authState.otpSent)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 16),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            const Text(
+                                              "Didn't receive OTP? ",
+                                              style: TextStyle(color: AppTheme.textSecondary),
+                                            ),
+                                            TextButton(
+                                              onPressed: authState.isLoading ? null : () {
+                                                ref.read(authProvider.notifier).login(
+                                                  _emailController.text,
+                                                  _passwordController.text,
+                                                );
+                                              },
+                                              child: const Text(
+                                                'Resend',
+                                                style: TextStyle(
+                                                  color: AppTheme.primaryColor,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      side: const BorderSide(color: Color(0xFF6B7280)),
-                                    ),
-                                    child: const Text(
-                                      'Try Demo',
-                                      style: TextStyle(
-                                        color: Color(0xFF6B7280),
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ],
+                                  ],
+                                );
+                              },
                             ),
                             const SizedBox(height: 24),
                             Row(
@@ -200,7 +315,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   style: TextStyle(color: AppTheme.textSecondary),
                                 ),
                                 TextButton(
-                                  onPressed: () {},
+                                  onPressed: () => context.go('/signup'),
                                   child: const Text(
                                     'Sign Up',
                                     style: TextStyle(

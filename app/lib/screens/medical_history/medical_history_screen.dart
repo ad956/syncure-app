@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../themes/app_theme.dart';
 import '../../widgets/mobile_layout.dart';
-import '../../data/mock_data.dart';
+
 
 class MedicalHistoryScreen extends ConsumerStatefulWidget {
   const MedicalHistoryScreen({super.key});

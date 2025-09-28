@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../themes/app_theme.dart';
 import '../../widgets/mobile_layout.dart';
-import '../../data/mock_data.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/appointments_provider.dart';
 
 class AppointmentsScreen extends ConsumerStatefulWidget {
   const AppointmentsScreen({super.key});
@@ -32,6 +33,11 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.forward();
+    
+    // Fetch appointments data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(appointmentsProvider.notifier).fetchAppointments();
+    });
   }
 
   @override
@@ -76,14 +82,20 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Welcome to your appointment section,\n${MockData.userProfile['name'].split(' ')[0]} !',
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.textPrimary,
-            height: 1.3,
-          ),
+        Consumer(
+          builder: (context, ref, child) {
+            final authState = ref.watch(authProvider);
+            final userName = authState.user?.firstName ?? 'User';
+            return Text(
+              'Welcome to your appointment section,\n$userName !',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+                height: 1.3,
+              ),
+            );
+          },
         ),
         const SizedBox(height: 12),
         const Text(
@@ -143,7 +155,7 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
           _buildDropdown(
             'Select State *',
             _selectedState,
-            MockData.states,
+            const ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Gujarat', 'Rajasthan'],
             (value) => setState(() {
               _selectedState = value!;
               _selectedCity = '';
@@ -154,9 +166,9 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
           _buildDropdown(
             'Select City *',
             _selectedCity,
-            _selectedState.isNotEmpty && MockData.cities.containsKey(_selectedState)
-                ? MockData.cities[_selectedState]!
-                : [],
+            _selectedState == 'Maharashtra' ? ['Mumbai', 'Pune'] :
+            _selectedState == 'Karnataka' ? ['Bangalore', 'Mysore'] :
+            _selectedState == 'Tamil Nadu' ? ['Chennai', 'Coimbatore'] : [],
             (value) => setState(() {
               _selectedCity = value!;
               _selectedHospital = '';
@@ -166,16 +178,16 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
           _buildDropdown(
             'Select Hospital *',
             _selectedHospital,
-            _selectedCity.isNotEmpty && MockData.hospitals.containsKey(_selectedCity)
-                ? MockData.hospitals[_selectedCity]!
-                : [],
+            _selectedCity == 'Mumbai' ? ['Apollo Hospital', 'Fortis Hospital'] :
+            _selectedCity == 'Bangalore' ? ['Manipal Hospital', 'Narayana Health'] :
+            _selectedCity == 'Chennai' ? ['Apollo Hospital', 'Fortis Malar'] : [],
             (value) => setState(() => _selectedHospital = value!),
           ),
           const SizedBox(height: 16),
           _buildDropdown(
             'Select Disease *',
             _selectedDisease,
-            MockData.diseases,
+            const ['General Consultation', 'Fever', 'Cold & Cough', 'Headache', 'Stomach Pain'],
             (value) => setState(() => _selectedDisease = value!),
           ),
           const SizedBox(height: 16),

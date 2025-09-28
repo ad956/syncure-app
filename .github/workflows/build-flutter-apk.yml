@@ -1,0 +1,76 @@
+name: Build Flutter APK
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'app/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'app/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    if: contains(github.event.head_commit.modified, 'app/') || contains(github.event.head_commit.added, 'app/') || github.event_name == 'pull_request'
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.16.0'
+        channel: 'stable'
+
+    - name: Change to app directory
+      run: cd app
+
+    - name: Get dependencies
+      run: |
+        cd app
+        flutter pub get
+
+    - name: Build APK
+      run: |
+        cd app
+        flutter build apk --release
+
+    - name: Get APK path
+      id: apk-path
+      run: |
+        cd app
+        echo "path=$(find build/app/outputs/flutter-apk -name '*.apk' | head -1)" >> $GITHUB_OUTPUT
+
+    - name: Send APK to Telegram
+      if: github.ref == 'refs/heads/main'
+      run: |
+        cd app
+        APK_PATH="${{ steps.apk-path.outputs.path }}"
+        COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+        COMMIT_HASH=$(git rev-parse --short HEAD)
+        
+        curl -F "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+             -F "document=@$APK_PATH" \
+             -F "caption=🚀 New Syncure Flutter APK Build
+        
+        📱 Commit: $COMMIT_MSG
+        🔗 Hash: $COMMIT_HASH
+        📅 Built: $(date)
+        📂 Changes: Flutter App Updated
+        
+        Download and install to test the latest features!" \
+             "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument"
+
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: syncure-flutter-apk
+        path: app/${{ steps.apk-path.outputs.path }}

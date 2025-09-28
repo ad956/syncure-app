@@ -11,12 +11,14 @@ class AppointmentsNotifier extends StateNotifier<List<Appointment>> {
   Future<void> fetchAppointments() async {
     try {
       final response = await _apiService.getAppointments();
-      final appointments = (response.data as List)
-          .map((json) => Appointment.fromJson(json))
-          .toList();
-      state = appointments;
+      if (response.statusCode == 200) {
+        final appointments = (response.data as List)
+            .map((json) => Appointment.fromJson(json))
+            .toList();
+        state = appointments;
+      }
     } catch (e) {
-      // Handle error
+      state = [];
     }
   }
 }
