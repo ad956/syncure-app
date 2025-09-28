@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../themes/app_theme.dart';
 import '../../widgets/mobile_layout.dart';
-import '../../data/mock_data.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -15,7 +14,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  String _selectedTab = 'Personal Info';
 
   @override
   void initState() {
@@ -84,11 +82,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         children: [
           CircleAvatar(
             radius: 50,
-            backgroundImage: AssetImage(MockData.userProfile['avatar']),
+            backgroundImage: const AssetImage('assets/images/admin.png'),
           ),
           const SizedBox(height: 16),
-          Text(
-            MockData.userProfile['name'],
+          const Text(
+            'User Profile',
             style: const TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -96,7 +94,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ),
           ),
           Text(
-            '@${MockData.userProfile['username']}',
+            '@username',
             style: const TextStyle(
               fontSize: 14,
               color: AppTheme.textSecondary,
@@ -143,19 +141,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
             ),
           ),
           const SizedBox(height: 24),
-          _buildTextField('First Name', MockData.userProfile['name'].split(' ')[0]),
+          _buildTextField('First Name', 'John'),
           const SizedBox(height: 16),
-          _buildTextField('Last Name', MockData.userProfile['name'].split(' ')[1]),
+          _buildTextField('Last Name', 'Doe'),
           const SizedBox(height: 16),
-          _buildTextField('Username', MockData.userProfile['username']),
+          _buildTextField('Username', 'johndoe'),
           const SizedBox(height: 16),
-          _buildTextField('Email address', MockData.userProfile['email']),
+          _buildTextField('Email address', 'john@example.com'),
           const SizedBox(height: 16),
-          _buildDropdown('Gender', MockData.userProfile['gender']),
+          _buildDropdown('Gender', 'Male'),
           const SizedBox(height: 16),
-          _buildTextField('DOB', MockData.userProfile['dob']),
+          _buildTextField('DOB', '01/01/1990'),
           const SizedBox(height: 16),
-          _buildTextField('Phone', MockData.userProfile['phone']),
+          _buildTextField('Phone', '+91 9876543210'),
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,

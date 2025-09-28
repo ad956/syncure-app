@@ -1,13 +1,85 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:convert';
+import 'dart:developer' as developer;
 
 class NovuService {
-  static const String _apiKey = 'YOUR_NOVU_API_KEY';
-  static const String _subscriberId = 'user_subscriber_id';
+  static String get _apiKey => dotenv.env['NOVU_API_KEY'] ?? '9bf8f535c3337adbaa9b753cb5d07012';
+  static String get _appIdentifier => dotenv.env['NOVU_APP_IDENTIFIER'] ?? 'TYYV4MrlYpLD';
+  static const String _baseUrl = 'https://api.novu.co/v1';
+  static const String _subscriberId = 'patient_johndoe'; // Replace with actual user ID
 
   static Future<void> initializeNovu() async {
-    // Initialize Novu SDK
-    // This would typically involve setting up the Novu client
-    print('Novu initialized');
+    try {
+      // Create subscriber if not exists
+      await createSubscriber(_subscriberId, {
+        'firstName': 'John',
+        'lastName': 'Doe',
+        'email': 'john@example.com',
+        'phone': '+919876543210',
+      });
+      developer.log('🔔 Novu initialized successfully');
+    } catch (e) {
+      developer.log('❌ Novu initialization failed: $e');
+    }
+  }
+
+  static Future<void> createSubscriber(String subscriberId, Map<String, dynamic> data) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/subscribers'),
+        headers: {
+          'Authorization': 'ApiKey $_apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'subscriberId': subscriberId,
+          'firstName': data['firstName'],
+          'lastName': data['lastName'],
+          'email': data['email'],
+          'phone': data['phone'],
+        }),
+      );
+      
+      if (response.statusCode == 201 || response.statusCode == 409) {
+        developer.log('✅ Subscriber created/exists: $subscriberId');
+      } else {
+        developer.log('❌ Failed to create subscriber: ${response.body}');
+      }
+    } catch (e) {
+      developer.log('❌ Error creating subscriber: $e');
+    }
+  }
+
+  static Future<void> triggerNotification({
+    required String templateId,
+    required Map<String, dynamic> payload,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$_baseUrl/events/trigger'),
+        headers: {
+          'Authorization': 'ApiKey $_apiKey',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'name': templateId,
+          'to': {
+            'subscriberId': _subscriberId,
+          },
+          'payload': payload,
+        }),
+      );
+      
+      if (response.statusCode == 201) {
+        developer.log('✅ Notification triggered: $templateId');
+      } else {
+        developer.log('❌ Failed to trigger notification: ${response.body}');
+      }
+    } catch (e) {
+      developer.log('❌ Error triggering notification: $e');
+    }
   }
 
   static Future<void> showNotifications(BuildContext context) async {
@@ -21,7 +93,35 @@ class NovuService {
   }
 
   static Future<List<NotificationItem>> getNotifications() async {
-    // Mock notifications - replace with actual Novu API calls
+    try {
+      final response = await http.get(
+        Uri.parse('$_baseUrl/subscribers/$_subscriberId/notifications'),
+        headers: {
+          'Authorization': 'ApiKey $_apiKey',
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final notifications = (data['data'] as List).map((item) {
+          return NotificationItem(
+            id: item['_id'],
+            title: item['payload']['title'] ?? 'Notification',
+            message: item['payload']['message'] ?? item['content'] ?? '',
+            timestamp: DateTime.parse(item['createdAt']),
+            isRead: item['read'] ?? false,
+          );
+        }).toList();
+        
+        developer.log('✅ Loaded ${notifications.length} notifications from Novu');
+        return notifications;
+      }
+    } catch (e) {
+      developer.log('❌ Error fetching notifications: $e');
+    }
+    
+    // Fallback to mock notifications
     return [
       NotificationItem(
         id: '1',

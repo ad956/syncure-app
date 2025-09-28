@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../themes/app_theme.dart';
 
 class Sidebar extends StatelessWidget {
   final String currentRoute;

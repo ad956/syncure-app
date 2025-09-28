@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:table_calendar/table_calendar.dart';
 import '../../themes/app_theme.dart';
-import '../../data/mock_data.dart';
 import '../../widgets/mobile_layout.dart';
+import '../../providers/auth_provider.dart';
+import '../../providers/dashboard_provider.dart';
+import '../../providers/medicines_provider.dart';
 import 'dashboard_widgets.dart';
+import 'package:iconsax/iconsax.dart';
+import 'package:go_router/go_router.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -19,7 +21,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     with TickerProviderStateMixin, DashboardWidgets {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
-  int _selectedTabIndex = 0;
+
   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
 
@@ -34,6 +36,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.forward();
+    
+    // Fetch dashboard data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(dashboardProvider.notifier).fetchDashboard();
+      ref.read(medicinesProvider.notifier).fetchMedicines();
+    });
   }
 
   @override
@@ -61,6 +69,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     const SizedBox(height: 16),
                     _buildHealthMetrics(),
                     const SizedBox(height: 16),
+                    _buildQuickActions(),
+                    const SizedBox(height: 16),
                     _buildMedicinesCard(),
                     const SizedBox(height: 16),
                     buildCalendar(_selectedDay, _focusedDay, (selectedDay, focusedDay) {
@@ -70,15 +80,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                       });
                     }, context),
                     const SizedBox(height: 16),
-                    buildTabSection(_selectedTabIndex, (index) {
-                      setState(() {
-                        _selectedTabIndex = index;
-                      });
-                    }),
-                    const SizedBox(height: 16),
-                    _buildPieCharts(),
-                    const SizedBox(height: 16),
                     _buildHealthChart(),
+
                   ],
                 ),
               );
@@ -92,49 +95,106 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
 
   Widget _buildUserCard() {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+    
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFF8FAFC),
+            Colors.white,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         children: [
-          CircleAvatar(
-            radius: 40,
-            backgroundImage: AssetImage(MockData.userProfile['avatar']),
+          Row(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFF6366F1),
+                    width: 3,
+                  ),
+                ),
+                child: CircleAvatar(
+                  radius: 35,
+                  backgroundImage: user?.image != null 
+                      ? NetworkImage(user!.image!) 
+                      : const AssetImage('assets/images/admin.png') as ImageProvider,
+                ),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user?.name ?? 'John Doe',
+                      style: const TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      user?.phone ?? user?.email ?? '+91 9876543210',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'Premium Patient',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF10B981),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 20),
-          Expanded(
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFF6366F1).withOpacity(0.1),
+                width: 1,
+              ),
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  MockData.userProfile['name'],
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  MockData.userProfile['phone'],
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 16),
                 const Text(
-                  'Details',
+                  'Health Profile',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -142,10 +202,29 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   ),
                 ),
                 const SizedBox(height: 12),
-                _buildDetailRow('Age :', '${MockData.userProfile['age']} Year'),
-                _buildDetailRow('Blood Group :', MockData.userProfile['bloodGroup']),
-                _buildDetailRow('Height (f) :', MockData.userProfile['height']),
-                _buildDetailRow('Weight (Kg) :', MockData.userProfile['weight']),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDetailCard('Age', user?.age?.toString() ?? '28', 'Years', Icons.cake),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildDetailCard('Blood', user?.bloodGroup ?? 'O+', 'Group', Icons.bloodtype),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildDetailCard('Height', user?.height?.toString() ?? '5.8', 'ft', Icons.height),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildDetailCard('Weight', user?.weight?.toString() ?? '70', 'kg', Icons.monitor_weight),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -154,27 +233,39 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
+  Widget _buildDetailCard(String label, String value, String unit, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0xFF6366F1).withOpacity(0.1),
+          width: 1,
+        ),
+      ),
+      child: Column(
         children: [
-          SizedBox(
-            width: 100,
-            child: Text(
-              label,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppTheme.textSecondary,
-              ),
-            ),
+          Icon(
+            icon,
+            color: const Color(0xFF6366F1),
+            size: 20,
           ),
+          const SizedBox(height: 8),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
               color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '$label ($unit)',
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppTheme.textSecondary,
             ),
           ),
         ],
@@ -189,6 +280,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
 
 
   Widget _buildHealthMetrics() {
+    final dashboardData = ref.watch(dashboardProvider);
+    
     return Column(
       children: [
         Row(
@@ -196,18 +289,18 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             Expanded(
               child: _buildMetricCard(
                 'General Health',
-                '85%',
+                '${dashboardData?.healthScore ?? 85}%',
                 const Color(0xFFE95B7B),
-                0.85,
+                (dashboardData?.healthScore ?? 85) / 100,
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _buildMetricCard(
                 'Water Balance',
-                '78%',
+                '${dashboardData?.waterBalance ?? 78}%',
                 const Color(0xFF038EF5),
-                0.78,
+                (dashboardData?.waterBalance ?? 78) / 100,
               ),
             ),
           ],
@@ -218,9 +311,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             Expanded(
               child: _buildMetricCard(
                 'Current Treatment',
-                '10%',
+                '${dashboardData?.currentTreatment ?? 10}%',
                 const Color(0xFF466EFC),
-                0.10,
+                (dashboardData?.currentTreatment ?? 10) / 100,
               ),
             ),
             const SizedBox(width: 12),
@@ -238,20 +331,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     ),
                   ],
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Pending Appointments',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppTheme.textSecondary,
                       ),
                     ),
-                    SizedBox(height: 8),
+                    const SizedBox(height: 8),
                     Text(
-                      '10',
-                      style: TextStyle(
+                      '${dashboardData?.upcomingAppointments ?? 0}',
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary,
@@ -313,6 +406,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   }
 
   Widget _buildMedicinesCard() {
+    final medicines = ref.watch(medicinesProvider);
+    
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -329,38 +424,161 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Medicines',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Iconsax.health,
+                  color: Color(0xFF10B981),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Current Medicines',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
-          ...MockData.medicines.map((medicine) => _buildMedicineItem(medicine)),
+          if (medicines == null)
+            _buildMedicinesLoading()
+          else if (medicines.isEmpty)
+            _buildNoMedicines()
+          else
+            _buildMedicinesList(medicines),
         ],
       ),
     );
   }
 
-  Widget _buildMedicineItem(Map<String, dynamic> medicine) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+  Widget _buildMedicinesLoading() {
+    return Container(
+      height: 120,
+      child: const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoMedicines() {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFF6366F1).withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Iconsax.health,
+              size: 32,
+              color: Color(0xFF6366F1),
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'No Active Medicines',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'You don\'t have any active prescriptions at the moment. Consult with your doctor for any health concerns.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.textSecondary,
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton.icon(
+            onPressed: () {
+              context.go('/book-appointment');
+            },
+            icon: const Icon(Iconsax.calendar, size: 16),
+            label: const Text('Book Appointment'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF6366F1),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMedicinesList(List<Medicine> medicines) {
+    final activeMedicines = medicines.where((m) => m.isActive).take(3).toList();
+    
+    return Column(
+      children: [
+        ...activeMedicines.map((medicine) => _buildMedicineItem(medicine)),
+        if (medicines.length > 3)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: TextButton(
+              onPressed: () {
+                // Navigate to full medicines list
+              },
+              child: Text(
+                'View all ${medicines.length} medicines',
+                style: const TextStyle(
+                  color: Color(0xFF6366F1),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildMedicineItem(Medicine medicine) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF10B981).withOpacity(0.2),
+          width: 1,
+        ),
+      ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Color(medicine['color']).withOpacity(0.1),
+              color: _getMedicineTypeColor(medicine.type).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Center(
-              child: Text(
-                medicine['icon'],
-                style: const TextStyle(fontSize: 20),
-              ),
+            child: Icon(
+              _getMedicineTypeIcon(medicine.type),
+              color: _getMedicineTypeColor(medicine.type),
+              size: 16,
             ),
           ),
           const SizedBox(width: 12),
@@ -369,27 +587,79 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  medicine['name'],
+                  medicine.name,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textPrimary,
                   ),
                 ),
+                const SizedBox(height: 4),
                 Text(
-                  medicine['dosage'],
+                  '${medicine.dosage} • ${medicine.frequency}',
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 12,
                     color: AppTheme.textSecondary,
                   ),
                 ),
               ],
             ),
           ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Text(
+              'Active',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF10B981),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
+
+  IconData _getMedicineTypeIcon(String type) {
+    switch (type.toLowerCase()) {
+      case 'tablet':
+      case 'pill':
+        return Iconsax.health;
+      case 'syrup':
+      case 'liquid':
+        return Iconsax.drop;
+      case 'injection':
+        return Iconsax.health;
+      case 'capsule':
+        return Iconsax.health;
+      default:
+        return Iconsax.health;
+    }
+  }
+
+  Color _getMedicineTypeColor(String type) {
+    switch (type.toLowerCase()) {
+      case 'tablet':
+      case 'pill':
+        return const Color(0xFF6366F1);
+      case 'syrup':
+      case 'liquid':
+        return const Color(0xFF10B981);
+      case 'injection':
+        return const Color(0xFFEF4444);
+      case 'capsule':
+        return const Color(0xFFF59E0B);
+      default:
+        return const Color(0xFF6366F1);
+    }
+  }
+
+
 
   Widget _buildPieCharts() {
     return Row(
@@ -423,43 +693,49 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   height: 120,
                   child: PieChart(
                     PieChartData(
-                      sections: MockData.pieChartData.map((data) {
-                        return PieChartSectionData(
-                          value: data['value'].toDouble(),
-                          color: Color(data['color']),
-                          radius: 40,
-                          showTitle: false,
-                        );
-                      }).toList(),
+                      sections: [
+                        PieChartSectionData(value: 45, color: const Color(0xFF6366F1), radius: 40, showTitle: false),
+                        PieChartSectionData(value: 25, color: const Color(0xFF10B981), radius: 40, showTitle: false),
+                        PieChartSectionData(value: 20, color: const Color(0xFFF59E0B), radius: 40, showTitle: false),
+                        PieChartSectionData(value: 10, color: const Color(0xFFEF4444), radius: 40, showTitle: false),
+                      ],
                       sectionsSpace: 2,
                       centerSpaceRadius: 30,
                     ),
                   ),
                 ),
                 const SizedBox(height: 12),
-                ...MockData.pieChartData.map((data) => Padding(
-                  padding: const EdgeInsets.only(bottom: 4),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: Color(data['color']),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${data['name']} ${data['value']}%',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                )),
+                const Row(
+                  children: [
+                    Icon(Icons.circle, color: Color(0xFF6366F1), size: 8),
+                    SizedBox(width: 6),
+                    Text('Consultations 45%', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Row(
+                  children: [
+                    Icon(Icons.circle, color: Color(0xFF10B981), size: 8),
+                    SizedBox(width: 6),
+                    Text('Lab Tests 25%', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Row(
+                  children: [
+                    Icon(Icons.circle, color: Color(0xFFF59E0B), size: 8),
+                    SizedBox(width: 6),
+                    Text('Medications 20%', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Row(
+                  children: [
+                    Icon(Icons.circle, color: Color(0xFFEF4444), size: 8),
+                    SizedBox(width: 6),
+                    Text('Follow-ups 10%', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
+                  ],
+                ),
               ],
             ),
           ),
@@ -608,9 +884,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 borderData: FlBorderData(show: false),
                 lineBarsData: [
                   LineChartBarData(
-                    spots: MockData.healthConditions.asMap().entries.map((entry) {
-                      return FlSpot(entry.key.toDouble(), entry.value['value'].toDouble());
-                    }).toList(),
+                    spots: const [
+                      FlSpot(0, 35), FlSpot(1, 65), FlSpot(2, 95), FlSpot(3, 55),
+                      FlSpot(4, 45), FlSpot(5, 55), FlSpot(6, 75), FlSpot(7, 65),
+                      FlSpot(8, 85), FlSpot(9, 95), FlSpot(10, 75), FlSpot(11, 85),
+                    ],
                     isCurved: true,
                     color: const Color(0xFF038EF5),
                     barWidth: 3,
@@ -629,7 +907,113 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
+  Widget _buildQuickActions() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Quick Actions',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionCard(
+                  'Book Appointment',
+                  Iconsax.calendar_add,
+                  const Color(0xFF6366F1),
+                  () => context.go('/book-appointment'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionCard(
+                  'My Doctors',
+                  Iconsax.user,
+                  const Color(0xFF10B981),
+                  () => context.go('/doctors'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildActionCard(
+                  'Lab Results',
+                  Iconsax.document_text,
+                  const Color(0xFFF59E0B),
+                  () => context.go('/lab-results'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildActionCard(
+                  'Pending Bills',
+                  Iconsax.wallet,
+                  const Color(0xFFEF4444),
+                  () => context.go('/payments'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
 
-
-
+  Widget _buildActionCard(String title, IconData icon, Color color, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../themes/app_theme.dart';
 import '../../widgets/mobile_layout.dart';
-import '../../data/mock_data.dart';
+import '../../providers/payments_provider.dart';
 
 class PaymentsScreen extends ConsumerStatefulWidget {
   const PaymentsScreen({super.key});
@@ -29,6 +29,11 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
     _animationController.forward();
+    
+    // Fetch payments data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(paymentsProvider.notifier).fetchPayments();
+    });
   }
 
   @override
@@ -148,12 +153,14 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
   }
 
   Widget _buildPaymentsList() {
-    final filteredBills = MockData.bills.where((bill) {
-      if (_statusFilter != 'All' && bill['status'] != _statusFilter) {
+    final payments = ref.watch(paymentsProvider);
+    
+    final filteredPayments = payments.where((payment) {
+      if (_statusFilter != 'All' && payment.status != _statusFilter) {
         return false;
       }
       if (_searchController.text.isNotEmpty &&
-          !bill['hospital']
+          !payment.hospitalName
               .toLowerCase()
               .contains(_searchController.text.toLowerCase())) {
         return false;
@@ -180,7 +187,7 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
             child: Row(
               children: [
                 Text(
-                  'Total ${filteredBills.length} payments',
+                  'Total ${filteredPayments.length} payments',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -191,7 +198,21 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
             ),
           ),
           const Divider(height: 1),
-          ...filteredBills.map((bill) => _buildPaymentCard(bill)),
+          if (filteredPayments.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(32),
+              child: Center(
+                child: Text(
+                  'No payments found',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ),
+            )
+          else
+            ...filteredPayments.map((payment) => _buildPaymentCard(payment)),
           const Divider(height: 1),
           Container(
             padding: const EdgeInsets.all(16),
@@ -241,7 +262,7 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
     );
   }
 
-  Widget _buildPaymentCard(Map<String, dynamic> bill) {
+  Widget _buildPaymentCard(payment) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -270,7 +291,7 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      bill['hospital'],
+                      payment.hospitalName,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -278,7 +299,7 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
                       ),
                     ),
                     Text(
-                      bill['date'],
+                      payment.date.toString().split(' ')[0],
                       style: const TextStyle(
                         fontSize: 14,
                         color: AppTheme.textSecondary,
@@ -291,17 +312,17 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: bill['status'] == 'Pending'
+                  color: payment.status == 'Pending'
                       ? const Color(0xFFFEF3C7)
                       : const Color(0xFFD1FAE5),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  bill['status'],
+                  payment.status,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: bill['status'] == 'Pending'
+                    color: payment.status == 'Pending'
                         ? const Color(0xFFD97706)
                         : const Color(0xFF059669),
                   ),
@@ -324,7 +345,7 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
                       ),
                     ),
                     Text(
-                      bill['amount'],
+                      '₹${payment.amount}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -346,7 +367,7 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
                       ),
                     ),
                     Text(
-                      bill['disease'],
+                      payment.disease,
                       style: const TextStyle(
                         fontSize: 14,
                         color: AppTheme.textPrimary,
@@ -359,17 +380,17 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'ID: ${bill['id']}',
+            'ID: ${payment.id}',
             style: const TextStyle(
               fontSize: 12,
               color: AppTheme.textSecondary,
               fontFamily: 'monospace',
             ),
           ),
-          if (bill['description'].isNotEmpty) ...[
+          if (payment.description.isNotEmpty) ...[
             const SizedBox(height: 4),
             Text(
-              bill['description'],
+              payment.description,
               style: const TextStyle(
                 fontSize: 12,
                 color: AppTheme.textSecondary,

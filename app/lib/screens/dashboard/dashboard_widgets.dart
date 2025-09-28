@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../../themes/app_theme.dart';
-import '../../data/mock_data.dart';
+
 
 mixin DashboardWidgets {
   Widget buildCalendar(DateTime selectedDay, DateTime focusedDay,
       Function(DateTime, DateTime) onDaySelected, BuildContext context) {
-    final appointmentDates = MockData.getAppointmentDates();
+    final appointmentDates = <DateTime>[];
     
     return Container(
       padding: const EdgeInsets.all(20),
@@ -45,7 +45,7 @@ mixin DashboardWidgets {
             selectedDayPredicate: (day) => isSameDay(selectedDay, day),
             onDaySelected: (selectedDay, focusedDay) {
               onDaySelected(selectedDay, focusedDay);
-              final appointment = MockData.getAppointmentForDate(selectedDay);
+              final appointment = null;
               if (appointment != null) {
                 _showAppointmentPopup(context, appointment);
               }
@@ -376,9 +376,9 @@ mixin DashboardWidgets {
         const SizedBox(height: 16),
         Expanded(
           child: ListView.builder(
-            itemCount: MockData.bills.take(3).length,
+            itemCount: 0,
             itemBuilder: (context, index) {
-              final bill = MockData.bills[index];
+              final bill = <String, dynamic>{};
               return _buildBillItem(bill);
             },
           ),
@@ -462,9 +462,9 @@ mixin DashboardWidgets {
         const SizedBox(height: 16),
         Expanded(
           child: ListView.builder(
-            itemCount: MockData.doctors.take(3).length,
+            itemCount: 0,
             itemBuilder: (context, index) {
-              final doctor = MockData.doctors[index];
+              final doctor = <String, dynamic>{};
               return _buildDoctorItem(doctor);
             },
           ),
@@ -566,9 +566,9 @@ mixin DashboardWidgets {
         const SizedBox(height: 16),
         Expanded(
           child: ListView.builder(
-            itemCount: MockData.labResults.take(3).length,
+            itemCount: 0,
             itemBuilder: (context, index) {
-              final result = MockData.labResults[index];
+              final result = <String, dynamic>{};
               return _buildLabResultItem(result);
             },
           ),
