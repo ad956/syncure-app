@@ -158,7 +158,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         color: AppTheme.textSecondary,
                       ),
                     ),
-                    if (user?.phone != null) ..[
+                    if (user?.phone != null) ...[
                       const SizedBox(height: 2),
                       Text(
                         user!.phone!,
@@ -301,7 +301,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 'General Health',
                 '${dashboardData?.healthScore ?? 85}%',
                 const Color(0xFFE95B7B),
-                (dashboardData?.healthScore ?? 85) / 100,
+                (dashboardData?.healthScore ?? 85) / 100,Score ?? 85) / 100,
               ),
             ),
             const SizedBox(width: 12),
