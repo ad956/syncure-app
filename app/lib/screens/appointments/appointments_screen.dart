@@ -21,6 +21,15 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
   String _selectedHospital = '';
   String _selectedDisease = '';
   final TextEditingController _notesController = TextEditingController();
+  
+  List<String> _states = [];
+  List<String> _cities = [];
+  List<String> _hospitals = [];
+  List<String> _diseases = [];
+  
+  bool _isLoadingStates = false;
+  bool _isLoadingCities = false;
+  bool _isLoadingHospitals = false;
 
   @override
   void initState() {
@@ -34,9 +43,10 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
     );
     _animationController.forward();
     
-    // Fetch appointments data
+    // Fetch appointments data and load initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(appointmentsProvider.notifier).fetchAppointments();
+      _loadStates();
     });
   }
 
@@ -87,9 +97,9 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
             final authState = ref.watch(authProvider);
             final userName = authState.user?.firstName ?? 'User';
             return Text(
-              'Welcome to your appointment section,\n$userName !',
+              'Welcome to your appointments, $userName!',
               style: const TextStyle(
-                fontSize: 20,
+                fontSize: 22,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.textPrimary,
                 height: 1.3,
@@ -99,9 +109,9 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
         ),
         const SizedBox(height: 12),
         const Text(
-          'To book an appointment, first, select your city. Then, choose a hospital within that city. Finally, provide your details to confirm the appointment.',
+          'Book your medical appointments easily. Select your preferred location, hospital, and provide your health concerns to get started.',
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 15,
             color: AppTheme.textSecondary,
             height: 1.5,
           ),
@@ -109,17 +119,54 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
         const SizedBox(height: 16),
         Container(
           width: double.infinity,
-          height: 120,
+          height: 140,
           decoration: BoxDecoration(
-            color: const Color(0xFFF3F4F6),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Center(
-            child: Icon(
-              Icons.calendar_month,
-              size: 60,
-              color: Color(0xFF6B7280),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                const Color(0xFF6366F1).withOpacity(0.1),
+                const Color(0xFFE95B7B).withOpacity(0.1),
+              ],
             ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFF6366F1).withOpacity(0.2),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6366F1).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.calendar_today_rounded,
+                  size: 32,
+                  color: Color(0xFF6366F1),
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Schedule Your Appointment',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const Text(
+                'Quick & Easy Booking',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
           ),
         ),
       ],
@@ -155,39 +202,49 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
           _buildDropdown(
             'Select State *',
             _selectedState,
-            const ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Gujarat', 'Rajasthan'],
-            (value) => setState(() {
-              _selectedState = value!;
-              _selectedCity = '';
-              _selectedHospital = '';
-            }),
+            _states,
+            (value) {
+              setState(() {
+                _selectedState = value!;
+                _selectedCity = '';
+                _selectedHospital = '';
+                _cities = [];
+                _hospitals = [];
+              });
+              _loadCities(_selectedState);
+            },
+            isLoading: _isLoadingStates,
           ),
           const SizedBox(height: 16),
           _buildDropdown(
             'Select City *',
             _selectedCity,
-            _selectedState == 'Maharashtra' ? ['Mumbai', 'Pune'] :
-            _selectedState == 'Karnataka' ? ['Bangalore', 'Mysore'] :
-            _selectedState == 'Tamil Nadu' ? ['Chennai', 'Coimbatore'] : [],
-            (value) => setState(() {
-              _selectedCity = value!;
-              _selectedHospital = '';
-            }),
+            _cities,
+            (value) {
+              setState(() {
+                _selectedCity = value!;
+                _selectedHospital = '';
+                _hospitals = [];
+              });
+              _loadHospitals(_selectedCity);
+            },
+            isLoading: _isLoadingCities,
+            enabled: _selectedState.isNotEmpty,
           ),
           const SizedBox(height: 16),
           _buildDropdown(
             'Select Hospital *',
             _selectedHospital,
-            _selectedCity == 'Mumbai' ? ['Apollo Hospital', 'Fortis Hospital'] :
-            _selectedCity == 'Bangalore' ? ['Manipal Hospital', 'Narayana Health'] :
-            _selectedCity == 'Chennai' ? ['Apollo Hospital', 'Fortis Malar'] : [],
+            _hospitals,
             (value) => setState(() => _selectedHospital = value!),
+            isLoading: _isLoadingHospitals,
+            enabled: _selectedCity.isNotEmpty,
           ),
           const SizedBox(height: 16),
           _buildDropdown(
             'Select Disease *',
             _selectedDisease,
-            const ['General Consultation', 'Fever', 'Cold & Cough', 'Headache', 'Stomach Pain'],
+            _diseases,
             (value) => setState(() => _selectedDisease = value!),
           ),
           const SizedBox(height: 16),
@@ -231,7 +288,77 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
     );
   }
 
-  Widget _buildDropdown(String label, String value, List<String> items, Function(String?) onChanged) {
+  Future<void> _loadStates() async {
+    setState(() => _isLoadingStates = true);
+    try {
+      await Future.delayed(const Duration(milliseconds: 500));
+      setState(() {
+        _states = ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Gujarat', 'Rajasthan'];
+        _diseases = ['General Consultation', 'Fever', 'Cold & Cough', 'Headache', 'Stomach Pain'];
+        _isLoadingStates = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingStates = false);
+    }
+  }
+  
+  Future<void> _loadCities(String state) async {
+    setState(() => _isLoadingCities = true);
+    try {
+      await Future.delayed(const Duration(milliseconds: 500));
+      setState(() {
+        _cities = _getCitiesForState(state);
+        _isLoadingCities = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingCities = false);
+    }
+  }
+  
+  Future<void> _loadHospitals(String city) async {
+    setState(() => _isLoadingHospitals = true);
+    try {
+      await Future.delayed(const Duration(milliseconds: 500));
+      setState(() {
+        _hospitals = _getHospitalsForCity(city);
+        _isLoadingHospitals = false;
+      });
+    } catch (e) {
+      setState(() => _isLoadingHospitals = false);
+    }
+  }
+  
+  List<String> _getCitiesForState(String state) {
+    switch (state) {
+      case 'Maharashtra':
+        return ['Mumbai', 'Pune', 'Nagpur'];
+      case 'Karnataka':
+        return ['Bangalore', 'Mysore', 'Hubli'];
+      case 'Tamil Nadu':
+        return ['Chennai', 'Coimbatore', 'Madurai'];
+      case 'Gujarat':
+        return ['Ahmedabad', 'Surat', 'Vadodara'];
+      case 'Rajasthan':
+        return ['Jaipur', 'Jodhpur', 'Udaipur'];
+      default:
+        return [];
+    }
+  }
+  
+  List<String> _getHospitalsForCity(String city) {
+    switch (city) {
+      case 'Mumbai':
+        return ['Apollo Hospital Mumbai', 'Fortis Hospital Mulund', 'Lilavati Hospital'];
+      case 'Bangalore':
+        return ['Manipal Hospital', 'Narayana Health City', 'Apollo Hospital Bangalore'];
+      case 'Chennai':
+        return ['Apollo Hospital Chennai', 'Fortis Malar Hospital', 'MIOT International'];
+      default:
+        return ['City General Hospital', 'Metro Medical Center'];
+    }
+  }
+
+  Widget _buildDropdown(String label, String value, List<String> items, Function(String?) onChanged, {bool isLoading = false, bool enabled = true}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -262,10 +389,22 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
             filled: true,
             fillColor: Colors.white,
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            suffixIcon: isLoading 
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  )
+                : null,
           ),
           hint: Text(
-            label.replaceAll(' *', ''),
-            style: const TextStyle(color: Color(0xFF9CA3AF)),
+            enabled ? label.replaceAll(' *', '') : 'Select previous option first',
+            style: TextStyle(
+              color: enabled ? const Color(0xFF9CA3AF) : const Color(0xFFD1D5DB),
+            ),
           ),
           items: items.map((String item) {
             return DropdownMenuItem<String>(
@@ -273,7 +412,7 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
               child: Text(item),
             );
           }).toList(),
-          onChanged: onChanged,
+          onChanged: enabled && !isLoading ? onChanged : null,
         ),
       ],
     );
