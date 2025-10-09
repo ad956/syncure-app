@@ -73,82 +73,140 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
   }
 
   Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Payment History',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.textPrimary,
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-          ),
-          child: TextField(
-            controller: _searchController,
-            decoration: const InputDecoration(
-              hintText: 'Search by hospital name',
-              hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
-              prefixIcon: Icon(Icons.search, color: Color(0xFF6B7280)),
-              border: InputBorder.none,
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                  color: const Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
+                child: const Icon(
+                  Icons.account_balance_wallet,
+                  color: Color(0xFF10B981),
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Status',
+                    Text(
+                      'Payment History',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      'Track all your medical payments',
                       style: TextStyle(
                         fontSize: 14,
                         color: AppTheme.textSecondary,
                       ),
                     ),
-                    const Spacer(),
-                    DropdownButton<String>(
-                      value: _statusFilter,
-                      underline: const SizedBox(),
-                      icon: const Icon(Icons.keyboard_arrow_down,
-                          color: Color(0xFF6B7280)),
-                      items: ['All', 'Pending', 'Success'].map((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                      onChanged: (String? newValue) {
-                        setState(() {
-                          _statusFilter = newValue!;
-                        });
-                      },
-                    ),
                   ],
                 ),
               ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
             ),
-          ],
-        ),
-      ],
+            child: TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                hintText: 'Search by hospital name',
+                hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                prefixIcon: Icon(Icons.search, color: Color(0xFF6B7280)),
+                border: InputBorder.none,
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.filter_list,
+                        color: Color(0xFF6B7280),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Filter by Status',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const Spacer(),
+                      DropdownButton<String>(
+                        value: _statusFilter,
+                        underline: const SizedBox(),
+                        icon: const Icon(Icons.keyboard_arrow_down,
+                            color: Color(0xFF6B7280), size: 20),
+                        items: ['All', 'Pending', 'Success'].map((String value) {
+                          return DropdownMenuItem<String>(
+                            value: value,
+                            child: Text(
+                              value,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                        onChanged: (String? newValue) {
+                          setState(() {
+                            _statusFilter = newValue!;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -264,25 +322,41 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
 
   Widget _buildPaymentCard(payment) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: const Color(0xFFF3F4F6),
-                child: const Icon(
-                  Icons.local_hospital,
-                  size: 20,
-                  color: Color(0xFF6B7280),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: payment.status == 'Pending'
+                      ? const Color(0xFFF59E0B).withOpacity(0.1)
+                      : const Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  payment.status == 'Pending'
+                      ? Icons.schedule
+                      : Icons.check_circle,
+                  size: 24,
+                  color: payment.status == 'Pending'
+                      ? const Color(0xFFF59E0B)
+                      : const Color(0xFF10B981),
                 ),
               ),
               const SizedBox(width: 12),
@@ -310,22 +384,38 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
               ),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: payment.status == 'Pending'
                       ? const Color(0xFFFEF3C7)
                       : const Color(0xFFD1FAE5),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text(
-                  payment.status,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: payment.status == 'Pending'
-                        ? const Color(0xFFD97706)
-                        : const Color(0xFF059669),
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: payment.status == 'Pending'
+                            ? const Color(0xFFD97706)
+                            : const Color(0xFF059669),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      payment.status,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: payment.status == 'Pending'
+                            ? const Color(0xFFD97706)
+                            : const Color(0xFF059669),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

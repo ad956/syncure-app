@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:heroicons/heroicons.dart';
 import '../themes/app_theme.dart';
 import '../services/novu_service.dart';
+import '../providers/auth_provider.dart';
 
 class MobileLayout extends StatefulWidget {
   final Widget child;
@@ -76,9 +78,9 @@ class _MobileLayoutState extends State<MobileLayout>
           ),
           child: IconButton(
             icon: const Icon(
-              Icons.apps_rounded,
+              Icons.menu_rounded,
               color: Color(0xFF6366F1),
-              size: 20,
+              size: 22,
             ),
             onPressed: () => Scaffold.of(context).openDrawer(),
             tooltip: 'Menu',
@@ -111,9 +113,9 @@ class _MobileLayoutState extends State<MobileLayout>
                 icon: Stack(
                   children: [
                     const Icon(
-                      Icons.notifications_active_rounded,
+                      Icons.notifications_outlined,
                       color: Color(0xFF6366F1),
-                      size: 20,
+                      size: 22,
                     ),
                     if (unreadCount > 0)
                       Positioned(
@@ -171,28 +173,20 @@ class _MobileLayoutState extends State<MobileLayout>
             builder: (context, child) {
               return Container(
                 height: 200,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Color.lerp(
-                        const Color(0xFF6366F1),
-                        const Color(0xFF8B5CF6),
-                        _drawerAnimation.value,
-                      )!,
-                      Color.lerp(
-                        const Color(0xFF8B5CF6),
-                        const Color(0xFF06B6D4),
-                        _drawerAnimation.value,
-                      )!,
+                      Color(0xFF667eea),
+                      Color(0xFF764ba2),
                     ],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Color(0x20000000),
                       blurRadius: 20,
-                      offset: const Offset(0, 4),
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
@@ -246,25 +240,31 @@ class _MobileLayoutState extends State<MobileLayout>
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'John Doe',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const Text(
-                                '+91 9876543210',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
+                          child: Consumer(
+                            builder: (context, ref, child) {
+                              final authState = ref.watch(authProvider);
+                              final user = authState.user;
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    user?.name ?? 'John Doe',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    user?.email ?? 'john.doe@example.com',
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -281,17 +281,17 @@ class _MobileLayoutState extends State<MobileLayout>
               color: Colors.white,
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
-                  _buildDrawerItem(HeroIcons.user, 'Profile Settings', '/profile', context, const Color(0xFF038EF5)),
-                  _buildDrawerItem(HeroIcons.questionMarkCircle, 'Help & Support', '/help', context, const Color(0xFF32325D)),
-                  _buildDrawerItem(HeroIcons.informationCircle, 'About Syncure', '/about', context, const Color(0xFF466EFC)),
-                  _buildDrawerItem(HeroIcons.shieldCheck, 'Privacy Policy', '/privacy', context, const Color(0xFF038EF5)),
+                  const SizedBox(height: 24),
+                  _buildDrawerItem(HeroIcons.user, 'Profile Settings', '/profile', context, const Color(0xFF6366F1)),
+                  _buildDrawerItem(HeroIcons.questionMarkCircle, 'Help & Support', '/help', context, const Color(0xFF10B981)),
+                  _buildDrawerItem(HeroIcons.informationCircle, 'About Syncure', '/about', context, const Color(0xFF8B5CF6)),
+                  _buildDrawerItem(HeroIcons.shieldCheck, 'Privacy Policy', '/privacy', context, const Color(0xFF06B6D4)),
                   const Spacer(),
                   Container(
                     margin: const EdgeInsets.all(16),
                     child: _buildLogoutItem(context),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),

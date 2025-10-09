@@ -6,7 +6,39 @@ import '../../themes/app_theme.dart';
 mixin DashboardWidgets {
   Widget buildCalendar(DateTime selectedDay, DateTime focusedDay,
       Function(DateTime, DateTime) onDaySelected, BuildContext context) {
-    final appointmentDates = <DateTime>[];
+    // Sample appointment data - replace with actual API data
+    final appointmentDates = [
+      DateTime.now().add(const Duration(days: 2)),
+      DateTime.now().add(const Duration(days: 5)),
+      DateTime.now().add(const Duration(days: 10)),
+    ];
+    
+    final appointments = {
+      DateTime.now().add(const Duration(days: 2)): {
+        'doctorName': 'Dr. Sarah Johnson',
+        'specialty': 'Cardiologist',
+        'hospital': 'Apollo Hospital',
+        'issue': 'Regular Checkup',
+        'time': '10:30 AM',
+        'status': 'Confirmed'
+      },
+      DateTime.now().add(const Duration(days: 5)): {
+        'doctorName': 'Dr. Michael Chen',
+        'specialty': 'Dermatologist',
+        'hospital': 'Fortis Hospital',
+        'issue': 'Skin Consultation',
+        'time': '2:00 PM',
+        'status': 'Pending'
+      },
+      DateTime.now().add(const Duration(days: 10)): {
+        'doctorName': 'Dr. Emily Davis',
+        'specialty': 'General Physician',
+        'hospital': 'Max Healthcare',
+        'issue': 'Fever & Cold',
+        'time': '11:15 AM',
+        'status': 'Confirmed'
+      },
+    };
     
     return Container(
       padding: const EdgeInsets.all(20),
@@ -45,7 +77,7 @@ mixin DashboardWidgets {
             selectedDayPredicate: (day) => isSameDay(selectedDay, day),
             onDaySelected: (selectedDay, focusedDay) {
               onDaySelected(selectedDay, focusedDay);
-              final appointment = null;
+              final appointment = appointments[selectedDay];
               if (appointment != null) {
                 _showAppointmentPopup(context, appointment);
               }
