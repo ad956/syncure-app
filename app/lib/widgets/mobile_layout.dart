@@ -76,9 +76,9 @@ class _MobileLayoutState extends State<MobileLayout>
           ),
           child: IconButton(
             icon: const Icon(
-              Icons.apps_rounded,
+              Icons.menu_rounded,
               color: Color(0xFF6366F1),
-              size: 20,
+              size: 22,
             ),
             onPressed: () => Scaffold.of(context).openDrawer(),
             tooltip: 'Menu',
@@ -111,9 +111,9 @@ class _MobileLayoutState extends State<MobileLayout>
                 icon: Stack(
                   children: [
                     const Icon(
-                      Icons.notifications_active_rounded,
+                      Icons.notifications_outlined,
                       color: Color(0xFF6366F1),
-                      size: 20,
+                      size: 22,
                     ),
                     if (unreadCount > 0)
                       Positioned(
