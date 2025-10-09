@@ -152,12 +152,22 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      user?.phone ?? user?.email ?? '+91 9876543210',
+                      user?.email ?? 'john.doe@example.com',
                       style: const TextStyle(
                         fontSize: 14,
                         color: AppTheme.textSecondary,
                       ),
                     ),
+                    if (user?.phone != null) ..[
+                      const SizedBox(height: 2),
+                      Text(
+                        user!.phone!,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
