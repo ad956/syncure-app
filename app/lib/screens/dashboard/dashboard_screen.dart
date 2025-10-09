@@ -301,7 +301,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                 'General Health',
                 '${dashboardData?.healthScore ?? 85}%',
                 const Color(0xFFE95B7B),
-                (dashboardData?.healthScore ?? 85) / 100,Score ?? 85) / 100,
+                (dashboardData?.healthScore ?? 85) / 100,
               ),
             ),
             const SizedBox(width: 12),
