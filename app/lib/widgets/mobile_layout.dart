@@ -173,28 +173,20 @@ class _MobileLayoutState extends State<MobileLayout>
             builder: (context, child) {
               return Container(
                 height: 200,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      Color.lerp(
-                        const Color(0xFF6366F1),
-                        const Color(0xFF8B5CF6),
-                        _drawerAnimation.value,
-                      )!,
-                      Color.lerp(
-                        const Color(0xFF8B5CF6),
-                        const Color(0xFF06B6D4),
-                        _drawerAnimation.value,
-                      )!,
+                      Color(0xFF667eea),
+                      Color(0xFF764ba2),
                     ],
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
+                      color: Color(0x20000000),
                       blurRadius: 20,
-                      offset: const Offset(0, 4),
+                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
@@ -289,17 +281,17 @@ class _MobileLayoutState extends State<MobileLayout>
               color: Colors.white,
               child: Column(
                 children: [
-                  const SizedBox(height: 20),
-                  _buildDrawerItem(HeroIcons.user, 'Profile Settings', '/profile', context, const Color(0xFF038EF5)),
-                  _buildDrawerItem(HeroIcons.questionMarkCircle, 'Help & Support', '/help', context, const Color(0xFF32325D)),
-                  _buildDrawerItem(HeroIcons.informationCircle, 'About Syncure', '/about', context, const Color(0xFF466EFC)),
-                  _buildDrawerItem(HeroIcons.shieldCheck, 'Privacy Policy', '/privacy', context, const Color(0xFF038EF5)),
+                  const SizedBox(height: 24),
+                  _buildDrawerItem(HeroIcons.user, 'Profile Settings', '/profile', context, const Color(0xFF6366F1)),
+                  _buildDrawerItem(HeroIcons.questionMarkCircle, 'Help & Support', '/help', context, const Color(0xFF10B981)),
+                  _buildDrawerItem(HeroIcons.informationCircle, 'About Syncure', '/about', context, const Color(0xFF8B5CF6)),
+                  _buildDrawerItem(HeroIcons.shieldCheck, 'Privacy Policy', '/privacy', context, const Color(0xFF06B6D4)),
                   const Spacer(),
                   Container(
                     margin: const EdgeInsets.all(16),
                     child: _buildLogoutItem(context),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
