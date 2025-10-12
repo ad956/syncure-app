@@ -1,0 +1,90 @@
+name: Flutter App CI/CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/**"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "zulu"
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.24.5"
+          channel: "stable"
+          cache: true
+
+      - name: Get dependencies
+        working-directory: app
+        run: |
+          flutter doctor -v
+          flutter pub get
+
+      - name: Build APK
+        id: build
+        working-directory: app
+        run: flutter build apk --release
+
+      - name: Get APK path
+        if: success()
+        id: apk-path
+        working-directory: app
+        run: |
+          APK_FILE=$(find build/app/outputs/flutter-apk -name 'app-release.apk' | head -1)
+          echo "path=$APK_FILE" >> $GITHUB_OUTPUT
+          echo "filename=$(basename $APK_FILE)" >> $GITHUB_OUTPUT
+
+      - name: Send success notification to Telegram
+        if: success() && github.ref == 'refs/heads/main'
+        working-directory: app
+        run: |
+          APK_PATH="${{ steps.apk-path.outputs.path }}"
+          COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+
+          curl -F "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
+               -F "document=@$APK_PATH" \
+               -F "caption=Syncure Flutter Build Success
+
+          📱 Commit: $COMMIT_MSG
+          🔗 Hash: $COMMIT_HASH
+          📅 Built: $(date)
+
+          Download and install to test!" \
+               "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument"
+
+      - name: Send failure notification to Telegram
+        if: failure() && github.ref == 'refs/heads/main'
+        run: |
+          COMMIT_MSG=$(git log -1 --pretty=format:"%s")
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+               -H "Content-Type: application/json" \
+               -d "{
+                 \"chat_id\": \"${{ secrets.TELEGRAM_CHAT_ID }}\",
+                 \"text\": \"Syncure Flutter Build Failed\n\n📱 Commit: $COMMIT_MSG\n🔗 Hash: $COMMIT_HASH\n📅 Failed: $(date)\n\nCheck the workflow logs for details.\"
+               }"
+
+      - name: Upload APK artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: syncure-flutter-apk
+          path: app/${{ steps.apk-path.outputs.path }}
