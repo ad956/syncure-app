@@ -66,24 +66,20 @@ class _MobileLayoutState extends State<MobileLayout>
         builder: (context) => Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFF6366F1).withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
+            border: Border.all(
+              color: const Color(0xFF6366F1).withOpacity(0.2),
+              width: 1,
+            ),
           ),
           child: IconButton(
             icon: const Icon(
-              Icons.menu_rounded,
+              Iconsax.menu_1,
               color: Color(0xFF6366F1),
-              size: 22,
+              size: 20,
             ),
             onPressed: () => Scaffold.of(context).openDrawer(),
-            tooltip: 'Menu',
           ),
         ),
       ),
@@ -100,7 +96,7 @@ class _MobileLayoutState extends State<MobileLayout>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withOpacity(0.08),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -113,14 +109,14 @@ class _MobileLayoutState extends State<MobileLayout>
                 icon: Stack(
                   children: [
                     const Icon(
-                      Icons.notifications_outlined,
+                      Iconsax.notification,
                       color: Color(0xFF6366F1),
-                      size: 22,
+                      size: 24,
                     ),
                     if (unreadCount > 0)
                       Positioned(
-                        right: 0,
-                        top: 0,
+                        right: 2,
+                        top: 2,
                         child: Container(
                           padding: const EdgeInsets.all(2),
                           decoration: const BoxDecoration(
@@ -144,7 +140,6 @@ class _MobileLayoutState extends State<MobileLayout>
                       ),
                   ],
                 ),
-                tooltip: 'Notifications',
               ),
             );
           },
@@ -173,22 +168,14 @@ class _MobileLayoutState extends State<MobileLayout>
             builder: (context, child) {
               return Container(
                 height: 200,
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF667eea),
-                      Color(0xFF764ba2),
-                    ],
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x20000000),
-                      blurRadius: 20,
-                      offset: Offset(0, 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(
+                    bottom: BorderSide(
+                      color: const Color(0xFFE5E7EB),
+                      width: 1,
                     ),
-                  ],
+                  ),
                 ),
                 child: SafeArea(
               child: Padding(
@@ -202,7 +189,7 @@ class _MobileLayoutState extends State<MobileLayout>
                           width: 40,
                           height: 40,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: const Color(0xFF6366F1).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Padding(
@@ -218,7 +205,7 @@ class _MobileLayoutState extends State<MobileLayout>
                         const Text(
                           'Syncure',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: Color(0xFF1F2937),
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
                           ),
@@ -230,7 +217,7 @@ class _MobileLayoutState extends State<MobileLayout>
                       children: [
                         Container(
                           decoration: BoxDecoration(
-                            border: Border.all(color: Colors.white, width: 2),
+                            border: Border.all(color: const Color(0xFF6366F1), width: 2),
                             borderRadius: BorderRadius.circular(25),
                           ),
                           child: const CircleAvatar(
@@ -250,7 +237,7 @@ class _MobileLayoutState extends State<MobileLayout>
                                   Text(
                                     user?.name ?? 'John Doe',
                                     style: const TextStyle(
-                                      color: Colors.white,
+                                      color: Color(0xFF1F2937),
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
@@ -258,7 +245,7 @@ class _MobileLayoutState extends State<MobileLayout>
                                   Text(
                                     user?.email ?? 'john.doe@example.com',
                                     style: const TextStyle(
-                                      color: Colors.white70,
+                                      color: Color(0xFF6B7280),
                                       fontSize: 12,
                                     ),
                                   ),
@@ -386,9 +373,9 @@ class _MobileLayoutState extends State<MobileLayout>
   Widget _buildBottomNavBar(BuildContext context) {
     final items = [
       {'icon': Iconsax.home_1, 'activeIcon': Iconsax.home_15, 'label': 'Home', 'route': '/dashboard'},
-      {'icon': Iconsax.scan, 'activeIcon': Iconsax.scan5, 'label': 'QR', 'route': '/qr'},
+      {'icon': Iconsax.scan_barcode, 'activeIcon': Iconsax.scan_barcode, 'label': 'QR', 'route': '/qr'},
       {'icon': Iconsax.calendar, 'activeIcon': Iconsax.calendar5, 'label': 'Appts', 'route': '/appointments'},
-      {'icon': Iconsax.wallet, 'activeIcon': Iconsax.wallet5, 'label': 'Payments', 'route': '/payments'},
+      {'icon': Iconsax.card, 'activeIcon': Iconsax.card, 'label': 'Payments', 'route': '/payments'},
       {'icon': Iconsax.health, 'activeIcon': Iconsax.health5, 'label': 'History', 'route': '/medical-history'},
     ];
 
@@ -413,8 +400,6 @@ class _MobileLayoutState extends State<MobileLayout>
 
   Widget _getTitle() {
     switch (widget.currentRoute) {
-      case '/book-appointment':
-        return const Text('Book Appointment', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF32325D)));
       case '/chat':
         return const Text('Chat with Doctor', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF32325D)));
       case '/lab-results':
