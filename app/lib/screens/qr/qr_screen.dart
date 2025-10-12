@@ -4,7 +4,6 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../themes/app_theme.dart';
 import '../../widgets/mobile_layout.dart';
 
-
 class QRScreen extends ConsumerStatefulWidget {
   const QRScreen({super.key});
 
@@ -12,7 +11,8 @@ class QRScreen extends ConsumerStatefulWidget {
   ConsumerState<QRScreen> createState() => _QRScreenState();
 }
 
-class _QRScreenState extends ConsumerState<QRScreen> with TickerProviderStateMixin {
+class _QRScreenState extends ConsumerState<QRScreen>
+    with TickerProviderStateMixin {
   late AnimationController _hoverController;
   late AnimationController _rotationController;
   late Animation<double> _scaleAnimation;
@@ -32,7 +32,7 @@ class _QRScreenState extends ConsumerState<QRScreen> with TickerProviderStateMix
       duration: const Duration(milliseconds: 200),
       vsync: this,
     );
-    
+
     _scaleAnimation = Tween<double>(begin: 1.0, end: 1.08).animate(
       CurvedAnimation(parent: _hoverController, curve: Curves.elasticOut),
     );
@@ -71,7 +71,8 @@ class _QRScreenState extends ConsumerState<QRScreen> with TickerProviderStateMix
                   children: [
                     CircleAvatar(
                       radius: 30,
-                      backgroundImage: const AssetImage('assets/images/admin.png'),
+                      backgroundImage:
+                          const AssetImage('assets/images/admin.png'),
                     ),
                     const SizedBox(width: 16),
                     Column(
@@ -118,7 +119,8 @@ class _QRScreenState extends ConsumerState<QRScreen> with TickerProviderStateMix
                 ),
                 const SizedBox(height: 32),
                 AnimatedBuilder(
-                  animation: Listenable.merge([_hoverController, _rotationController]),
+                  animation:
+                      Listenable.merge([_hoverController, _rotationController]),
                   builder: (context, child) {
                     return Transform.scale(
                       scale: _scaleAnimation.value,
@@ -160,15 +162,19 @@ class _QRScreenState extends ConsumerState<QRScreen> with TickerProviderStateMix
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF6366F1).withOpacity(_glowAnimation.value),
+                                  color: const Color(0xFF6366F1)
+                                      .withOpacity(_glowAnimation.value),
                                   blurRadius: _elevationAnimation.value,
-                                  offset: Offset(0, _elevationAnimation.value / 3),
+                                  offset:
+                                      Offset(0, _elevationAnimation.value / 3),
                                   spreadRadius: _elevationAnimation.value / 4,
                                 ),
                                 BoxShadow(
-                                  color: const Color(0xFFF31260).withOpacity(_glowAnimation.value * 0.5),
+                                  color: const Color(0xFFF31260)
+                                      .withOpacity(_glowAnimation.value * 0.5),
                                   blurRadius: _elevationAnimation.value * 0.8,
-                                  offset: Offset(0, _elevationAnimation.value / 4),
+                                  offset:
+                                      Offset(0, _elevationAnimation.value / 4),
                                   spreadRadius: 1,
                                 ),
                                 BoxShadow(
@@ -184,13 +190,13 @@ class _QRScreenState extends ConsumerState<QRScreen> with TickerProviderStateMix
                                 color: const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: _isPressed 
-                                    ? const Color(0xFF6366F1).withOpacity(0.3)
-                                    : Colors.transparent,
+                                  color: _isPressed
+                                      ? const Color(0xFF6366F1).withOpacity(0.3)
+                                      : Colors.transparent,
                                   width: 2,
                                 ),
                               ),
-                              child: const QrImageView(
+                              child: QrImageView(
                                 data: 'patient_johndoe_syncure_2024',
                                 version: QrVersions.auto,
                                 size: 180.0,
@@ -205,11 +211,16 @@ class _QRScreenState extends ConsumerState<QRScreen> with TickerProviderStateMix
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  _isPressed ? 'Hold to see 3D effect!' : 'Tap and hold QR code for 3D effect',
+                  _isPressed
+                      ? 'Hold to see 3D effect!'
+                      : 'Tap and hold QR code for 3D effect',
                   style: TextStyle(
                     fontSize: 12,
-                    color: _isPressed ? const Color(0xFF6366F1) : AppTheme.textSecondary,
-                    fontWeight: _isPressed ? FontWeight.w600 : FontWeight.normal,
+                    color: _isPressed
+                        ? const Color(0xFF6366F1)
+                        : AppTheme.textSecondary,
+                    fontWeight:
+                        _isPressed ? FontWeight.w600 : FontWeight.normal,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -237,16 +248,4 @@ class _QRScreenState extends ConsumerState<QRScreen> with TickerProviderStateMix
       ),
     );
   }
-
-
-
-
-
-
-
-
-
-
-
-
 }
