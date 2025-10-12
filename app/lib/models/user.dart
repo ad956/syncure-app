@@ -24,11 +24,20 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    String fullName = '';
+    if (json['firstname'] != null && json['lastname'] != null) {
+      fullName = '${json['firstname']} ${json['lastname']}';
+    } else if (json['name'] != null) {
+      fullName = json['name'];
+    } else if (json['firstName'] != null && json['lastName'] != null) {
+      fullName = '${json['firstName']} ${json['lastName']}';
+    }
+    
     return User(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
+      id: json['id'] ?? json['_id'] ?? '',
+      name: fullName,
       email: json['email'] ?? '',
-      image: json['image'],
+      image: json['image'] ?? json['profileImage'],
       role: json['role'] ?? 'patient',
       phone: json['phone'],
       age: json['age'],
