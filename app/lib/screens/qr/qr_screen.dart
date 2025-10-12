@@ -190,11 +190,11 @@ class _QRScreenState extends ConsumerState<QRScreen> with TickerProviderStateMix
                                   width: 2,
                                 ),
                               ),
-                              child: QrImageView(
-                                data: 'patient_johndoe_${DateTime.now().millisecondsSinceEpoch}',
+                              child: const QrImageView(
+                                data: 'patient_johndoe_syncure_2024',
                                 version: QrVersions.auto,
                                 size: 180.0,
-                                backgroundColor: const Color(0xFFF8FAFC),
+                                backgroundColor: Color(0xFFF8FAFC),
                               ),
                             ),
                           ),
