@@ -6,6 +6,7 @@ import '../../widgets/mobile_layout.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dashboard_provider.dart';
 import '../../providers/medicines_provider.dart';
+import '../../providers/appointments_provider.dart';
 import 'dashboard_widgets.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
@@ -41,6 +42,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(dashboardProvider.notifier).fetchDashboard();
       ref.read(medicinesProvider.notifier).fetchMedicines();
+      ref.read(appointmentsProvider.notifier).fetchAppointments();
     });
   }
 
@@ -78,7 +80,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                         _selectedDay = selectedDay;
                         _focusedDay = focusedDay;
                       });
-                    }, context),
+                    }, context, ref),
                     const SizedBox(height: 16),
                     _buildHealthChart(),
 
@@ -143,7 +145,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      user?.name ?? 'John Doe',
+                      user?.name.isNotEmpty == true ? user!.name : 'John Doe',
                       style: const TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,

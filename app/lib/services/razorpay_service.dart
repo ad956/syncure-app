@@ -6,6 +6,10 @@ import 'dart:developer' as developer;
 class RazorpayService {
   static late Razorpay _razorpay;
   static String get keyId => dotenv.env['RAZORPAY_KEY_ID'] ?? 'rzp_test_6G3XmFmIhiJiWq';
+  
+  // Store callbacks for current payment
+  static Function(PaymentSuccessResponse)? _currentSuccessCallback;
+  static Function(PaymentFailureResponse)? _currentErrorCallback;
 
   static void initialize() {
     _razorpay = Razorpay();
@@ -29,6 +33,10 @@ class RazorpayService {
     required Function(PaymentSuccessResponse) onSuccess,
     required Function(PaymentFailureResponse) onError,
   }) {
+    // Store callbacks for this payment
+    _currentSuccessCallback = onSuccess;
+    _currentErrorCallback = onError;
+    
     var options = {
       'key': keyId,
       'amount': (amount * 100).toInt(), // Amount in paise
@@ -41,37 +49,47 @@ class RazorpayService {
         'name': name,
       },
       'theme': {
-        'color': '#F31260'
-      }
+        'color': '#6366F1'
+      },
     };
 
     developer.log('💰 Starting payment: ₹$amount for $description');
+    developer.log('🔧 Payment options: $options');
     
     try {
       _razorpay.open(options);
+      developer.log('✅ Razorpay opened successfully');
     } catch (e) {
-      developer.log('❌ Payment error: $e');
-      onError(PaymentFailureResponse(
+      developer.log('❌ Payment initialization error: $e');
+      _currentErrorCallback?.call(PaymentFailureResponse(
         1, 
-        'Payment initialization failed: $e', 
-        {'order_id': orderId}
+        'Payment initialization failed. Please try again.', 
+        {'order_id': orderId, 'error': e.toString()}
       ));
+      _clearCallbacks();
     }
   }
 
   static void _handlePaymentSuccess(PaymentSuccessResponse response) {
     developer.log('✅ Payment successful: ${response.paymentId}');
-    // Handle success in the calling widget
+    _currentSuccessCallback?.call(response);
+    _clearCallbacks();
   }
 
   static void _handlePaymentError(PaymentFailureResponse response) {
     developer.log('❌ Payment failed: ${response.message}');
-    // Handle error in the calling widget
+    _currentErrorCallback?.call(response);
+    _clearCallbacks();
   }
 
   static void _handleExternalWallet(ExternalWalletResponse response) {
-    developer.log('🏦 External wallet: ${response.walletName}');
-    // Handle external wallet
+    developer.log('🏦 External wallet selected: ${response.walletName}');
+    // External wallet payments are handled by the wallet app
+  }
+  
+  static void _clearCallbacks() {
+    _currentSuccessCallback = null;
+    _currentErrorCallback = null;
   }
 
   // Quick payment for appointments
