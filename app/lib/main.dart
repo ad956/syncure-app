@@ -17,12 +17,14 @@ import 'screens/chat/chat_screen.dart';
 import 'screens/lab_results/lab_results_screen.dart';
 import 'screens/appointment_booking/appointment_booking_screen.dart';
 import 'screens/doctors/doctors_screen.dart';
+import 'screens/error/page_not_found_screen.dart';
 import 'services/razorpay_service.dart';
 import 'services/novu_service.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/',
+    errorBuilder: (context, state) => const PageNotFoundScreen(),
     routes: [
       GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
@@ -33,7 +35,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           builder: (context, state) => const DashboardScreen()),
       GoRoute(
           path: '/appointments',
-          builder: (context, state) => const AppointmentsScreen()),
+          builder: (context, state) => const AppointmentBookingScreen()),
       GoRoute(
           path: '/payments',
           builder: (context, state) => const PaymentsScreen()),
@@ -44,9 +46,17 @@ final routerProvider = Provider<GoRouter>((ref) {
           path: '/profile', builder: (context, state) => const ProfileScreen()),
       GoRoute(path: '/qr', builder: (context, state) => const QRScreen()),
       GoRoute(path: '/chat', builder: (context, state) => const ChatScreen()),
-      GoRoute(path: '/lab-results', builder: (context, state) => const LabResultsScreen()),
-      GoRoute(path: '/book-appointment', builder: (context, state) => const AppointmentBookingScreen()),
-      GoRoute(path: '/doctors', builder: (context, state) => const DoctorsScreen()),
+      GoRoute(
+          path: '/lab-results',
+          builder: (context, state) => const LabResultsScreen()),
+      GoRoute(
+          path: '/book-appointment',
+          builder: (context, state) => const AppointmentBookingScreen()),
+      GoRoute(
+          path: '/doctors', builder: (context, state) => const DoctorsScreen()),
+      GoRoute(
+          path: '/404',
+          builder: (context, state) => const PageNotFoundScreen()),
     ],
   );
 });
@@ -54,11 +64,11 @@ final routerProvider = Provider<GoRouter>((ref) {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-  
+
   // Initialize services
   RazorpayService.initialize();
   await NovuService.initializeNovu();
-  
+
   runApp(const ProviderScope(child: MyApp()));
 }
 

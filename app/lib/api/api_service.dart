@@ -110,6 +110,7 @@ class ApiService {
   }
 
   Future<Response> getAppointments() {
+    developer.log('📅 Fetching patient appointments');
     return _dio.get('/patient/appointment');
   }
 
@@ -140,6 +141,98 @@ class ApiService {
     return _dio.get('/patient/medicines').catchError((error) async {
       developer.log('❌ /patient/medicines failed, trying /medicines');
       return await _dio.get('/medicines');
+    });
+  }
+
+  // Booking data endpoints
+  Future<Response> getStates() {
+    developer.log('🏞️ Fetching states');
+    return _dio.get('/states');
+  }
+
+  Future<Response> getCities(String state) {
+    developer.log('🏢 Fetching cities for: $state');
+    return _dio.get('/city', queryParameters: {'state': state});
+  }
+
+  Future<Response> getHospitals(String state, String city) {
+    developer.log('🏥 Fetching hospitals for: $city, $state');
+    return _dio.get('/get-hospitals', queryParameters: {
+      'state': state,
+      'city': city
+    });
+  }
+
+  Future<Response> getDiseases() {
+    developer.log('🩺 Fetching diseases');
+    return _dio.get('/get-hospitals/disease');
+  }
+
+  Future<Response> createPaymentOrder(int amount) {
+    developer.log('💳 Creating payment order');
+    return _dio.post('/payment/create-order', data: {
+      'amount': amount.toString(),
+      'currency': 'INR'
+    });
+  }
+
+  Future<Response> verifyPayment({
+    required String orderId,
+    required String paymentId,
+    required String signature,
+  }) {
+    developer.log('✅ Verifying payment');
+    return _dio.post('/payment/verify', data: {
+      'orderCreationId': orderId,
+      'razorpayPaymentId': paymentId,
+      'razorpaySignature': signature,
+    });
+  }
+
+  Future<Response> checkPendingAppointment(String hospitalId) {
+    developer.log('🔍 Checking pending appointments');
+    return _dio.post('/patient/appointment/pending', data: {
+      'hospital_id': hospitalId,
+    });
+  }
+
+  Future<Response> bookAppointment({
+    required String state,
+    required String city,
+    required Map<String, dynamic> hospital,
+    required String disease,
+    required String notes,
+    required String transactionId,
+  }) {
+    developer.log('📅 Booking appointment');
+    return _dio.post('/patient/appointment', data: {
+      'state': state,
+      'city': city,
+      'hospital': hospital,
+      'disease': disease,
+      'note': notes,
+      'transaction_id': transactionId,
+    });
+  }
+
+  Future<Response> saveTransaction({
+    required String transactionId,
+    required String patientId,
+    required String hospitalId,
+    required String disease,
+    required String description,
+    required int amount,
+    required String status,
+  }) {
+    developer.log('💾 Saving transaction');
+    return _dio.post('/transactions', data: {
+      'transaction_id': transactionId,
+      'patient_id': patientId,
+      'hospital_id': hospitalId,
+      'disease': disease,
+      'description': description,
+      'amount': amount,
+      'status': status,
     });
   }
 

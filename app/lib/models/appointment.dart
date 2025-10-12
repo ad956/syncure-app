@@ -5,6 +5,9 @@ class Appointment {
   final DateTime date;
   final String status;
   final String disease;
+  final String? timing;
+  final String? doctorSpecialty;
+  final String? notes;
 
   Appointment({
     required this.id,
@@ -13,16 +16,22 @@ class Appointment {
     required this.date,
     required this.status,
     required this.disease,
+    this.timing,
+    this.doctorSpecialty,
+    this.notes,
   });
 
   factory Appointment.fromJson(Map<String, dynamic> json) {
     return Appointment(
-      id: json['id'],
-      hospitalName: json['hospitalName'],
-      doctorName: json['doctorName'],
+      id: json['_id'] ?? json['id'],
+      hospitalName: json['hospital']?['name'] ?? json['hospitalName'],
+      doctorName: json['doctor']?['name'] ?? json['doctorName'],
       date: DateTime.parse(json['date']),
-      status: json['status'],
+      status: json['approved'] ?? json['status'],
       disease: json['disease'],
+      timing: json['timing'],
+      doctorSpecialty: json['doctor']?['specialty'],
+      notes: json['note'] ?? json['notes'],
     );
   }
 }

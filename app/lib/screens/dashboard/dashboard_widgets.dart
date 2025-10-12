@@ -1,117 +1,109 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../themes/app_theme.dart';
+import '../../providers/appointments_provider.dart';
 
 
 mixin DashboardWidgets {
   Widget buildCalendar(DateTime selectedDay, DateTime focusedDay,
-      Function(DateTime, DateTime) onDaySelected, BuildContext context) {
-    // Sample appointment data - replace with actual API data
-    final appointmentDates = [
-      DateTime.now().add(const Duration(days: 2)),
-      DateTime.now().add(const Duration(days: 5)),
-      DateTime.now().add(const Duration(days: 10)),
-    ];
+      Function(DateTime, DateTime) onDaySelected, BuildContext context, WidgetRef ref) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final appointmentsState = ref.watch(appointmentsProvider);
+        final appointmentDates = ref.read(appointmentsProvider.notifier).getAppointmentDates();
     
-    final appointments = {
-      DateTime.now().add(const Duration(days: 2)): {
-        'doctorName': 'Dr. Sarah Johnson',
-        'specialty': 'Cardiologist',
-        'hospital': 'Apollo Hospital',
-        'issue': 'Regular Checkup',
-        'time': '10:30 AM',
-        'status': 'Confirmed'
-      },
-      DateTime.now().add(const Duration(days: 5)): {
-        'doctorName': 'Dr. Michael Chen',
-        'specialty': 'Dermatologist',
-        'hospital': 'Fortis Hospital',
-        'issue': 'Skin Consultation',
-        'time': '2:00 PM',
-        'status': 'Pending'
-      },
-      DateTime.now().add(const Duration(days: 10)): {
-        'doctorName': 'Dr. Emily Davis',
-        'specialty': 'General Physician',
-        'hospital': 'Max Healthcare',
-        'issue': 'Fever & Cold',
-        'time': '11:15 AM',
-        'status': 'Confirmed'
-      },
-    };
-    
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.calendar_today, color: Color(0xFF6366F1), size: 20),
-              const SizedBox(width: 8),
-              const Text(
-                'Appointments',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          TableCalendar<dynamic>(
-            firstDay: DateTime.utc(2020, 1, 1),
-            lastDay: DateTime.utc(2030, 12, 31),
-            focusedDay: focusedDay,
-            selectedDayPredicate: (day) => isSameDay(selectedDay, day),
-            onDaySelected: (selectedDay, focusedDay) {
-              onDaySelected(selectedDay, focusedDay);
-              final appointment = appointments[selectedDay];
-              if (appointment != null) {
-                _showAppointmentPopup(context, appointment);
-              }
-            },
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6366F1).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.calendar_today, color: Color(0xFF6366F1), size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Appointments',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ),
+                  if (appointmentsState.isLoading)
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TableCalendar<dynamic>(
+                firstDay: DateTime.utc(2020, 1, 1),
+                lastDay: DateTime.utc(2030, 12, 31),
+                focusedDay: focusedDay,
+                selectedDayPredicate: (day) => isSameDay(selectedDay, day),
+                onDaySelected: (selectedDay, focusedDay) {
+                  onDaySelected(selectedDay, focusedDay);
+                  final dayAppointments = ref.read(appointmentsProvider.notifier)
+                      .getAppointmentsForDate(selectedDay);
+                  if (dayAppointments.isNotEmpty) {
+                    _showAppointmentPopup(context, dayAppointments.first);
+                  }
+                },
             calendarFormat: CalendarFormat.month,
             startingDayOfWeek: StartingDayOfWeek.sunday,
             headerVisible: false,
-            calendarBuilders: CalendarBuilders(
-              defaultBuilder: (context, day, focusedDay) {
-                final hasAppointment = appointmentDates.any((date) => 
-                  date.year == day.year && date.month == day.month && date.day == day.day);
-                
-                if (hasAppointment) {
-                  return Container(
-                    margin: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE95B7B).withOpacity(0.1),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFE95B7B), width: 2),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '${day.day}',
-                        style: const TextStyle(
-                          color: Color(0xFFE95B7B),
-                          fontWeight: FontWeight.bold,
+                calendarBuilders: CalendarBuilders(
+                  defaultBuilder: (context, day, focusedDay) {
+                    final hasAppointment = appointmentDates.any((date) => 
+                      date.year == day.year && date.month == day.month && date.day == day.day);
+                    
+                    if (hasAppointment) {
+                      return Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFF6366F1), width: 2),
                         ),
-                      ),
-                    ),
-                  );
-                }
-                return null;
-              },
-            ),
+                        child: Center(
+                          child: Text(
+                            '${day.day}',
+                            style: const TextStyle(
+                              color: Color(0xFF6366F1),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return null;
+                  },
+                ),
             calendarStyle: const CalendarStyle(
               outsideDaysVisible: false,
               weekendTextStyle: TextStyle(color: AppTheme.textPrimary),
@@ -137,29 +129,31 @@ mixin DashboardWidgets {
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Container(
-                width: 12,
-                height: 12,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE95B7B),
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'Appointment dates',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.textSecondary,
-                ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF6366F1),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${appointmentsState.appointments.length} Appointments',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -195,16 +189,16 @@ mixin DashboardWidgets {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'Appointment Details',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: AppTheme.textPrimary,
                             ),
                           ),
                           Text(
-                            appointment['time'],
+                            appointment['timing'] ?? 'Time not set',
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppTheme.textSecondary,
@@ -220,25 +214,27 @@ mixin DashboardWidgets {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildDetailRow('Doctor:', appointment['doctorName']),
-                _buildDetailRow('Specialty:', appointment['specialty']),
-                _buildDetailRow('Hospital:', appointment['hospital']),
-                _buildDetailRow('Issue:', appointment['issue']),
+                _buildDetailRow('Doctor:', appointment['doctor']?['name'] ?? 'Not assigned'),
+                _buildDetailRow('Specialty:', appointment['doctor']?['specialty'] ?? 'General'),
+                _buildDetailRow('Hospital:', appointment['hospital']?['name'] ?? 'Unknown'),
+                _buildDetailRow('Issue:', appointment['disease'] ?? 'General checkup'),
+                if (appointment['note'] != null)
+                  _buildDetailRow('Notes:', appointment['note']),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: appointment['status'] == 'Confirmed' 
+                    color: appointment['approved'] == 'approved' 
                         ? Colors.green.withOpacity(0.1)
                         : Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    appointment['status'],
+                    appointment['approved'] == 'approved' ? 'Confirmed' : 'Pending',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: appointment['status'] == 'Confirmed' 
+                      color: appointment['approved'] == 'approved' 
                           ? Colors.green : Colors.orange,
                     ),
                   ),
