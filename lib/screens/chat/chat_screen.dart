@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:go_router/go_router.dart';
 import '../../themes/app_theme.dart';
 import '../../widgets/mobile_layout.dart';
 
@@ -22,65 +23,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return MobileLayout(
-      currentRoute: '/dashboard',
+      currentRoute: '/chat',
       child: Column(
         children: [
-          _buildHeader(),
           Expanded(child: _buildMessagesList()),
           _buildMessageInput(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1F2937)),
-          ),
-          Stack(
-            children: [
-              const CircleAvatar(
-                radius: 20,
-                backgroundImage: AssetImage('assets/images/admin.png'),
-              ),
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.white, width: 2),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Dr. Sarah Wilson', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                Text('Cardiologist • Online', style: TextStyle(color: Color(0xFF10B981), fontSize: 12)),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Iconsax.call, color: Color(0xFF6366F1)),
-          ),
         ],
       ),
     );

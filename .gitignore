@@ -47,3 +47,5 @@ app.*.map.json
 # ignore envs
 env.json
 *.env
+
+PATIENT_API_DOCUMENTATION.md

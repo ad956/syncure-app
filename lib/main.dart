@@ -7,7 +7,7 @@ import 'themes/app_theme.dart';
 import 'screens/splash/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/signup_screen.dart';
-import 'screens/dashboard/dashboard_screen.dart';
+import 'screens/dashboard/new_dashboard_screen.dart';
 import 'screens/appointments/appointments_screen.dart';
 import 'screens/payments/payments_screen.dart';
 import 'screens/medical_history/medical_history_screen.dart';
@@ -32,7 +32,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           path: '/signup', builder: (context, state) => const SignupScreen()),
       GoRoute(
           path: '/dashboard',
-          builder: (context, state) => const DashboardScreen()),
+          builder: (context, state) => const NewDashboardScreen()),
       GoRoute(
           path: '/appointments',
           builder: (context, state) => const AppointmentBookingScreen()),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:go_router/go_router.dart';
 import '../../themes/app_theme.dart';
 import '../../widgets/mobile_layout.dart';
 
@@ -10,46 +11,10 @@ class LabResultsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MobileLayout(
-      currentRoute: '/dashboard',
+      currentRoute: '/lab-results',
       child: Container(
         color: const Color(0xFFF8FAFC),
-        child: Column(
-          children: [
-            _buildHeader(context),
-            Expanded(child: _buildResultsList()),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))],
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1F2937)),
-          ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Iconsax.document_text, color: Color(0xFF10B981)),
-          ),
-          const SizedBox(width: 12),
-          const Text(
-            'Lab Results',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-        ],
+        child: _buildResultsList(),
       ),
     );
   }

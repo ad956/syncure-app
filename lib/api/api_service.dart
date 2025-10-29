@@ -124,16 +124,31 @@ class ApiService {
 
   Future<Response> getDashboard() {
     developer.log('📊 Fetching dashboard from: $baseUrl/patient/dashboard');
-    // Try different endpoints if main one fails
-    return _dio.get('/patient/dashboard').catchError((error) async {
-      developer.log('❌ /patient/dashboard failed, trying /dashboard');
-      try {
-        return await _dio.get('/dashboard');
-      } catch (e) {
-        developer.log('❌ /dashboard failed, trying /patient');
-        return await _dio.get('/patient');
-      }
+    return _dio.get('/patient/dashboard');
+  }
+
+  Future<Response> recordVitals({
+    required double weight,
+    required int systolicBp,
+    required int diastolicBp,
+    required int heartRate,
+    required double temperature,
+    required int bloodSugar,
+  }) {
+    developer.log('📊 Recording vital signs');
+    return _dio.post('/patient/vital-signs', data: {
+      'weight': weight,
+      'systolic_bp': systolicBp,
+      'diastolic_bp': diastolicBp,
+      'heart_rate': heartRate,
+      'temperature': temperature,
+      'blood_sugar': bloodSugar,
     });
+  }
+
+  Future<Response> takeMedication(String medicationId) {
+    developer.log('💊 Marking medication as taken: $medicationId');
+    return _dio.post('/patient/medications/$medicationId/take');
   }
 
   Future<Response> getMedicines() {
