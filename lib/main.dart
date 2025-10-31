@@ -8,7 +8,7 @@ import 'screens/splash/splash_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/signup_screen.dart';
 import 'screens/dashboard/new_dashboard_screen.dart';
-import 'screens/appointments/appointments_screen.dart';
+
 import 'screens/payments/payments_screen.dart';
 import 'screens/medical_history/medical_history_screen.dart';
 import 'screens/profile/profile_screen.dart';
@@ -17,6 +17,8 @@ import 'screens/chat/chat_screen.dart';
 import 'screens/lab_results/lab_results_screen.dart';
 import 'screens/appointment_booking/appointment_booking_screen.dart';
 import 'screens/doctors/doctors_screen.dart';
+import 'screens/health_records/health_records_screen.dart';
+import 'screens/appointments/appointments_list_screen.dart';
 import 'screens/error/page_not_found_screen.dart';
 import 'services/razorpay_service.dart';
 import 'services/novu_service.dart';
@@ -35,6 +37,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           builder: (context, state) => const NewDashboardScreen()),
       GoRoute(
           path: '/appointments',
+          builder: (context, state) => const AppointmentsListScreen()),
+      GoRoute(
+          path: '/book-appointment',
           builder: (context, state) => const AppointmentBookingScreen()),
       GoRoute(
           path: '/payments',
@@ -50,8 +55,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           path: '/lab-results',
           builder: (context, state) => const LabResultsScreen()),
       GoRoute(
-          path: '/book-appointment',
-          builder: (context, state) => const AppointmentBookingScreen()),
+          path: '/health-records',
+          builder: (context, state) => const HealthRecordsScreen()),
       GoRoute(
           path: '/doctors', builder: (context, state) => const DoctorsScreen()),
       GoRoute(

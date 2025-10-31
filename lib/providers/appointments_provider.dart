@@ -5,7 +5,7 @@ import 'dart:developer' as developer;
 
 class AppointmentsState {
   final bool isLoading;
-  final List<Map<String, dynamic>> appointments;
+  final List<Appointment> appointments;
   final String? error;
 
   AppointmentsState({
@@ -16,7 +16,7 @@ class AppointmentsState {
 
   AppointmentsState copyWith({
     bool? isLoading,
-    List<Map<String, dynamic>>? appointments,
+    List<Appointment>? appointments,
     String? error,
   }) {
     return AppointmentsState(
@@ -37,8 +37,8 @@ class AppointmentsNotifier extends StateNotifier<AppointmentsState> {
     try {
       final response = await _apiService.getAppointments();
       if (response.statusCode == 200 && response.data is List) {
-        final List<Map<String, dynamic>> appointments = 
-            List<Map<String, dynamic>>.from(response.data);
+        final List<Appointment> appointments = 
+            (response.data as List).map((json) => Appointment.fromJson(json)).toList();
         state = state.copyWith(isLoading: false, appointments: appointments);
         developer.log('✅ Fetched ${appointments.length} appointments');
       } else {
@@ -47,66 +47,45 @@ class AppointmentsNotifier extends StateNotifier<AppointmentsState> {
     } catch (e) {
       developer.log('❌ Failed to fetch appointments: $e');
       final fallbackAppointments = [
-        {
-          '_id': '1',
-          'state': 'Maharashtra',
-          'city': 'Mumbai',
-          'hospital': {'id': '1', 'name': 'Apollo Hospital Mumbai'},
-          'disease': 'General Checkup',
-          'note': 'Regular health checkup',
-          'approved': 'approved',
-          'doctor': {
-            'name': 'Dr. Sarah Johnson',
-            'profile': 'https://example.com/doctor1.jpg',
-            'specialty': 'General Medicine'
-          },
-          'date': DateTime.now().add(const Duration(days: 2)).toIso8601String().split('T')[0],
-          'timing': '10:30 AM',
-          'createdAt': DateTime.now().toIso8601String(),
-        },
-        {
-          '_id': '2',
-          'state': 'Karnataka',
-          'city': 'Bangalore',
-          'hospital': {'id': '2', 'name': 'Fortis Hospital Bangalore'},
-          'disease': 'Diabetes',
-          'note': 'Diabetes management consultation',
-          'approved': 'approved',
-          'doctor': {
-            'name': 'Dr. Michael Chen',
-            'profile': 'https://example.com/doctor2.jpg',
-            'specialty': 'Endocrinology'
-          },
-          'date': DateTime.now().add(const Duration(days: 5)).toIso8601String().split('T')[0],
-          'timing': '2:00 PM',
-          'createdAt': DateTime.now().toIso8601String(),
-        },
+        Appointment(
+          id: '1',
+          hospitalName: 'Apollo Hospital Mumbai',
+          doctorName: 'Dr. Sarah Johnson',
+          date: DateTime.now().add(const Duration(days: 2)),
+          status: 'approved',
+          disease: 'General Checkup',
+          timing: '10:30 AM',
+          appointmentTime: '10:30 AM',
+          doctorSpecialty: 'General Medicine',
+          notes: 'Regular health checkup',
+        ),
+        Appointment(
+          id: '2',
+          hospitalName: 'Fortis Hospital Bangalore',
+          doctorName: 'Dr. Michael Chen',
+          date: DateTime.now().add(const Duration(days: 5)),
+          status: 'approved',
+          disease: 'Diabetes',
+          timing: '2:00 PM',
+          appointmentTime: '2:00 PM',
+          doctorSpecialty: 'Endocrinology',
+          notes: 'Diabetes management consultation',
+        ),
       ];
       state = state.copyWith(isLoading: false, appointments: fallbackAppointments);
     }
   }
 
-  List<Map<String, dynamic>> getAppointmentsForDate(DateTime date) {
+  List<Appointment> getAppointmentsForDate(DateTime date) {
     return state.appointments.where((appointment) {
-      try {
-        final appointmentDate = DateTime.parse(appointment['date']);
-        return appointmentDate.year == date.year &&
-               appointmentDate.month == date.month &&
-               appointmentDate.day == date.day;
-      } catch (e) {
-        return false;
-      }
+      return appointment.date.year == date.year &&
+             appointment.date.month == date.month &&
+             appointment.date.day == date.day;
     }).toList();
   }
 
   List<DateTime> getAppointmentDates() {
-    return state.appointments.map((appointment) {
-      try {
-        return DateTime.parse(appointment['date']);
-      } catch (e) {
-        return DateTime.now();
-      }
-    }).toList();
+    return state.appointments.map((appointment) => appointment.date).toList();
   }
 }
 

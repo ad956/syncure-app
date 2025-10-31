@@ -28,6 +28,7 @@ dependencies:
   iconsax: ^0.0.8
   heroicons: ^0.10.0
   intl: ^0.18.1
+  pusher_channels_flutter: ^2.2.1
 
 dev_dependencies:
   flutter_test:

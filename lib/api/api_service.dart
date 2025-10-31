@@ -251,6 +251,122 @@ class ApiService {
     });
   }
 
+  // Health Records APIs
+  Future<Response> getVitalSigns() {
+    return _dio.get('/patient/vital-signs');
+  }
+
+  Future<Response> getHealthTrends() {
+    return _dio.get('/patient/health-trends');
+  }
+
+  Future<Response> getLabResults() {
+    return _dio.get('/patient/lab-results');
+  }
+
+  Future<Response> addLabResult(Map<String, dynamic> data) {
+    return _dio.post('/patient/lab-results', data: data);
+  }
+
+  Future<Response> getRecentLabResults() {
+    return _dio.get('/patient/lab-results/recent');
+  }
+
+  // Medication APIs
+  Future<Response> getMedications() {
+    return _dio.get('/patient/medications');
+  }
+
+  Future<Response> addMedication(Map<String, dynamic> data) {
+    return _dio.post('/patient/medications', data: data);
+  }
+
+  Future<Response> removeMedication(String medicationId) {
+    return _dio.post('/patient/medications/remove', data: {'id': medicationId});
+  }
+
+  // Family Management APIs
+  Future<Response> getFamilyMembers() {
+    return _dio.get('/patient/family-members');
+  }
+
+  Future<Response> addFamilyMember(Map<String, dynamic> data) {
+    return _dio.post('/patient/family-members', data: data);
+  }
+
+  // Payment & Billing APIs
+  Future<Response> getPendingBills() {
+    return _dio.get('/patient/bills/pending');
+  }
+
+  // Chat APIs
+  Future<Response> getChatRooms() {
+    return _dio.get('/chat/rooms');
+  }
+
+  Future<Response> createChatRoom(Map<String, dynamic> data) {
+    return _dio.post('/chat/room', data: data);
+  }
+
+  Future<Response> getChatMessages(String roomId) {
+    return _dio.get('/chat/messages', queryParameters: {'roomId': roomId});
+  }
+
+  Future<Response> sendMessage(Map<String, dynamic> data) {
+    return _dio.post('/chat/messages', data: data);
+  }
+
+  Future<Response> markMessagesAsRead(String roomId) {
+    return _dio.post('/chat/messages/read', data: {'roomId': roomId});
+  }
+
+  Future<Response> getDoctorsChatList() {
+    return _dio.get('/patient/dashboard/doctors-chat-list');
+  }
+
+  // Appointment APIs
+  Future<Response> getUpcomingAppointments() {
+    return _dio.get('/patient/appointments/upcoming');
+  }
+
+  Future<Response> getAppointmentCharges(Map<String, dynamic> data) {
+    return _dio.get('/patient/appointments/get-charge', queryParameters: data);
+  }
+
+  Future<Response> downloadReceipt(String appointmentId) {
+    return _dio.get('/patient/appointments/download-receipt', queryParameters: {'id': appointmentId});
+  }
+
+  // Profile Update APIs
+  Future<Response> updatePersonalInfo(Map<String, dynamic> data) {
+    return _dio.post('/update-profile/personal', data: data);
+  }
+
+  Future<Response> updateAddress(Map<String, dynamic> data) {
+    return _dio.post('/update-profile/address', data: data);
+  }
+
+  Future<Response> updateProfilePicture(Map<String, dynamic> data) {
+    return _dio.post('/update-profile/picture', data: data);
+  }
+
+  Future<Response> resetPassword(Map<String, dynamic> data) {
+    return _dio.post('/update-profile/reset-password', data: data);
+  }
+
+  // Utility APIs
+  Future<Response> uploadImage(Map<String, dynamic> data) {
+    return _dio.post('/cloudinary/sign-image', data: data);
+  }
+
+  Future<Response> testNotifications() {
+    return _dio.get('/test-notifications');
+  }
+
+  Future<Response> subscribeToNotifications(Map<String, dynamic> data) {
+    return _dio.post('/novu/subscriber', data: data);
+  }
+
   // Log API response for debugging
   void logApiResponse(String endpoint, dynamic data) {
     developer.log('🔍 API Response from $endpoint:');

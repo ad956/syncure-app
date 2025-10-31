@@ -3,12 +3,10 @@ name: Flutter App CI/CD
 on:
   push:
     branches: [main]
-    paths:
-      - "app/**"
+    tags:
+      - "v*"
   pull_request:
     branches: [main]
-    paths:
-      - "app/**"
 
 jobs:
   build:
@@ -31,28 +29,35 @@ jobs:
           cache: true
 
       - name: Get dependencies
-        working-directory: app
         run: |
           flutter doctor -v
           flutter pub get
 
       - name: Build APK
         id: build
-        working-directory: app
         run: flutter build apk --release
 
       - name: Get APK path
         if: success()
         id: apk-path
-        working-directory: app
         run: |
           APK_FILE=$(find build/app/outputs/flutter-apk -name 'app-release.apk' | head -1)
           echo "path=$APK_FILE" >> $GITHUB_OUTPUT
           echo "filename=$(basename $APK_FILE)" >> $GITHUB_OUTPUT
 
+      - name: Create GitHub Release
+        if: success() && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2.4.1
+        with:
+          files: ${{ steps.apk-path.outputs.path }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Send success notification to Telegram
         if: success() && github.ref == 'refs/heads/main'
-        working-directory: app
         run: |
           APK_PATH="${{ steps.apk-path.outputs.path }}"
           COMMIT_MSG=$(git log -1 --pretty=format:"%s")
@@ -87,4 +92,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: syncure-flutter-apk
-          path: app/${{ steps.apk-path.outputs.path }}
+          path: ${{ steps.apk-path.outputs.path }}

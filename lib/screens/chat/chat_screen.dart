@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
-import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../themes/app_theme.dart';
 import '../../widgets/mobile_layout.dart';
+import '../../providers/chat_provider.dart';
+import '../../models/chat.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   const ChatScreen({super.key});
@@ -13,78 +15,414 @@ class ChatScreen extends ConsumerStatefulWidget {
 }
 
 class _ChatScreenState extends ConsumerState<ChatScreen> {
-  final _messageController = TextEditingController();
-  final List<ChatMessage> _messages = [
-    ChatMessage(text: 'Hello! How can I help you today?', isDoctor: true, time: DateTime.now().subtract(const Duration(minutes: 5))),
-    ChatMessage(text: 'I have been experiencing headaches lately', isDoctor: false, time: DateTime.now().subtract(const Duration(minutes: 3))),
-    ChatMessage(text: 'How long have you been experiencing these headaches?', isDoctor: true, time: DateTime.now().subtract(const Duration(minutes: 1))),
-  ];
+  String? selectedRoomId;
+  final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(chatProvider.notifier).loadChatRooms();
+    });
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final chatState = ref.watch(chatProvider);
+    
     return MobileLayout(
       currentRoute: '/chat',
-      child: Column(
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          title: Text(selectedRoomId != null ? 'Chat' : 'Doctor Chat'),
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: selectedRoomId != null
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () => setState(() => selectedRoomId = null),
+                )
+              : null,
+        ),
+        body: selectedRoomId != null
+            ? _buildChatInterface(chatState)
+            : _buildChatRoomsList(chatState),
+      ),
+    );
+  }
+
+  Widget _buildChatRoomsList(ChatState chatState) {
+    if (chatState.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (chatState.chatRooms.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return Column(
+      children: [
+        _buildAvailableDoctorsHeader(),
+        Expanded(
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: chatState.chatRooms.length,
+            itemBuilder: (context, index) {
+              final room = chatState.chatRooms[index];
+              return _buildChatRoomItem(room);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAvailableDoctorsHeader() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
+      child: Row(
         children: [
-          Expanded(child: _buildMessagesList()),
-          _buildMessageInput(),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Iconsax.message, color: Color(0xFF10B981), size: 20),
+          ),
+          const SizedBox(width: 12),
+          const Text(
+            'Available Doctors',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMessagesList() {
+  Widget _buildChatRoomItem(ChatRoom room) {
     return Container(
-      color: const Color(0xFFF8FAFC),
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _messages.length,
-        itemBuilder: (context, index) => _buildMessageBubble(_messages[index]),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        leading: Stack(
+          children: [
+            CircleAvatar(
+              radius: 25,
+              backgroundImage: room.doctorPhoto != null
+                  ? NetworkImage(room.doctorPhoto!)
+                  : const AssetImage('assets/images/doctor.png') as ImageProvider,
+            ),
+            if (room.isOnline)
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        title: Text(
+          room.doctorName,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              room.doctorSpecialty,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              room.lastMessage.isNotEmpty ? room.lastMessage : 'Start a conversation',
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppTheme.textPrimary,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              _formatTime(room.lastMessageTime),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+            if (room.unreadCount > 0) ...[
+              const SizedBox(height: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  room.unreadCount.toString(),
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ]
+          ],
+        ),
+        onTap: () {
+          setState(() => selectedRoomId = room.id);
+          ref.read(chatProvider.notifier).loadMessages(room.id);
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6366F1).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Iconsax.message,
+                size: 48,
+                color: Color(0xFF6366F1),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'No doctors available',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Check back later for available doctors to chat with',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChatInterface(ChatState chatState) {
+    final room = chatState.chatRooms.firstWhere((r) => r.id == selectedRoomId);
+    final messages = chatState.messages;
+
+    return Column(
+      children: [
+        _buildChatHeader(room),
+        Expanded(
+          child: messages.isEmpty
+              ? _buildEmptyChatState()
+              : ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    return _buildMessageBubble(message);
+                  },
+                ),
+        ),
+        _buildMessageInput(),
+      ],
+    );
+  }
+
+  Widget _buildChatHeader(ChatRoom room) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
+      child: Row(
+        children: [
+          Stack(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundImage: room.doctorPhoto != null
+                    ? NetworkImage(room.doctorPhoto!)
+                    : const AssetImage('assets/images/doctor.png') as ImageProvider,
+              ),
+              if (room.isOnline)
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  room.doctorName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                Text(
+                  room.isOnline ? 'Online' : 'Offline',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: room.isOnline ? const Color(0xFF10B981) : AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyChatState() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(32),
+        child: Text(
+          'Start a conversation with the doctor',
+          style: TextStyle(
+            fontSize: 16,
+            color: AppTheme.textSecondary,
+          ),
+        ),
       ),
     );
   }
 
   Widget _buildMessageBubble(ChatMessage message) {
-    return Align(
-      alignment: message.isDoctor ? Alignment.centerLeft : Alignment.centerRight,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-        decoration: BoxDecoration(
-          color: message.isDoctor ? Colors.white : const Color(0xFF6366F1),
-          borderRadius: BorderRadius.circular(16).copyWith(
-            bottomLeft: message.isDoctor ? const Radius.circular(4) : const Radius.circular(16),
-            bottomRight: message.isDoctor ? const Radius.circular(16) : const Radius.circular(4),
+    final isFromPatient = message.isFromPatient;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        mainAxisAlignment: isFromPatient ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!isFromPatient) ...[
+            const CircleAvatar(
+              radius: 16,
+              backgroundImage: AssetImage('assets/images/doctor.png'),
+            ),
+            const SizedBox(width: 8),
+          ],
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isFromPatient ? const Color(0xFF6366F1) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 5,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message.message,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isFromPatient ? Colors.white : AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatMessageTime(message.timestamp),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isFromPatient ? Colors.white70 : AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+          if (isFromPatient) ...[
+            const SizedBox(width: 8),
+            const CircleAvatar(
+              radius: 16,
+              backgroundImage: AssetImage('assets/images/admin.png'),
             ),
           ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              message.text,
-              style: TextStyle(
-                color: message.isDoctor ? AppTheme.textPrimary : Colors.white,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _formatTime(message.time),
-              style: TextStyle(
-                color: message.isDoctor ? AppTheme.textSecondary : Colors.white70,
-                fontSize: 10,
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -92,10 +430,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget _buildMessageInput() {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, -2))],
-      ),
+      color: Colors.white,
       child: Row(
         children: [
           Expanded(
@@ -111,6 +446,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 fillColor: const Color(0xFFF8FAFC),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               ),
+              maxLines: null,
             ),
           ),
           const SizedBox(width: 8),
@@ -120,8 +456,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               shape: BoxShape.circle,
             ),
             child: IconButton(
+              icon: const Icon(Icons.send, color: Colors.white),
               onPressed: _sendMessage,
-              icon: const Icon(Iconsax.send_1, color: Colors.white, size: 20),
             ),
           ),
         ],
@@ -130,32 +466,51 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   void _sendMessage() {
-    if (_messageController.text.trim().isNotEmpty) {
-      setState(() {
-        _messages.add(ChatMessage(
-          text: _messageController.text.trim(),
-          isDoctor: false,
-          time: DateTime.now(),
-        ));
-        _messageController.clear();
-      });
+    if (_messageController.text.trim().isEmpty || selectedRoomId == null) return;
+    
+    ref.read(chatProvider.notifier).sendMessage(
+      selectedRoomId!,
+      _messageController.text.trim(),
+    );
+    
+    _messageController.clear();
+    
+    // Scroll to bottom
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
+  String _formatTime(String timestamp) {
+    if (timestamp.isEmpty) return '';
+    try {
+      final dateTime = DateTime.parse(timestamp);
+      return DateFormat('HH:mm').format(dateTime);
+    } catch (e) {
+      return '';
     }
   }
 
-  String _formatTime(DateTime time) {
-    final now = DateTime.now();
-    final diff = now.difference(time);
-    if (diff.inMinutes < 1) return 'now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
+  String _formatMessageTime(String timestamp) {
+    if (timestamp.isEmpty) return '';
+    try {
+      final dateTime = DateTime.parse(timestamp);
+      final now = DateTime.now();
+      final difference = now.difference(dateTime);
+      
+      if (difference.inDays > 0) {
+        return DateFormat('MMM dd, HH:mm').format(dateTime);
+      } else {
+        return DateFormat('HH:mm').format(dateTime);
+      }
+    } catch (e) {
+      return '';
+    }
   }
-}
-
-class ChatMessage {
-  final String text;
-  final bool isDoctor;
-  final DateTime time;
-
-  ChatMessage({required this.text, required this.isDoctor, required this.time});
 }

@@ -22,6 +22,8 @@ class Sidebar extends StatelessWidget {
           _buildNavItem(Icons.dashboard_outlined, Icons.dashboard, '/dashboard', context),
           _buildNavItem(Icons.qr_code_outlined, Icons.qr_code, '/qr', context),
           _buildNavItem(Icons.calendar_today_outlined, Icons.calendar_today, '/appointments', context),
+          _buildNavItem(Icons.favorite_outline, Icons.favorite, '/health-records', context),
+          _buildNavItem(Icons.chat_outlined, Icons.chat, '/chat', context),
           _buildNavItem(Icons.account_balance_wallet_outlined, Icons.account_balance_wallet, '/payments', context),
           _buildNavItem(Icons.medical_services_outlined, Icons.medical_services, '/medical-history', context),
           const Spacer(),

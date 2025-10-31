@@ -3,6 +3,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../themes/app_theme.dart';
 import '../../providers/appointments_provider.dart';
+import '../../models/appointment.dart';
 
 
 mixin DashboardWidgets {
@@ -157,7 +158,7 @@ mixin DashboardWidgets {
     );
   }
 
-  void _showAppointmentPopup(BuildContext context, Map<String, dynamic> appointment) {
+  void _showAppointmentPopup(BuildContext context, Appointment appointment) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -198,7 +199,7 @@ mixin DashboardWidgets {
                             ),
                           ),
                           Text(
-                            appointment['timing'] ?? 'Time not set',
+                            appointment.appointmentTime ?? 'Time not set',
                             style: const TextStyle(
                               fontSize: 12,
                               color: AppTheme.textSecondary,
@@ -214,27 +215,27 @@ mixin DashboardWidgets {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildDetailRow('Doctor:', appointment['doctor']?['name'] ?? 'Not assigned'),
-                _buildDetailRow('Specialty:', appointment['doctor']?['specialty'] ?? 'General'),
-                _buildDetailRow('Hospital:', appointment['hospital']?['name'] ?? 'Unknown'),
-                _buildDetailRow('Issue:', appointment['disease'] ?? 'General checkup'),
-                if (appointment['note'] != null)
-                  _buildDetailRow('Notes:', appointment['note']),
+                _buildDetailRow('Doctor:', appointment.doctorName),
+                _buildDetailRow('Specialty:', appointment.doctorSpecialty ?? 'General'),
+                _buildDetailRow('Hospital:', appointment.hospitalName),
+                _buildDetailRow('Issue:', appointment.disease),
+                if (appointment.notes != null)
+                  _buildDetailRow('Notes:', appointment.notes!),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: appointment['approved'] == 'approved' 
+                    color: appointment.status == 'approved' 
                         ? Colors.green.withOpacity(0.1)
                         : Colors.orange.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    appointment['approved'] == 'approved' ? 'Confirmed' : 'Pending',
+                    appointment.status == 'approved' ? 'Confirmed' : 'Pending',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
-                      color: appointment['approved'] == 'approved' 
+                      color: appointment.status == 'approved' 
                           ? Colors.green : Colors.orange,
                     ),
                   ),

@@ -49,6 +49,8 @@ class _NewDashboardScreenState extends ConsumerState<NewDashboardScreen> {
               const SizedBox(height: 16),
               _buildUpcomingAppointments(dashboard),
               const SizedBox(height: 16),
+              _buildPendingBills(),
+              const SizedBox(height: 16),
               _buildMedications(dashboard),
             ],
           ),
@@ -573,10 +575,10 @@ class _NewDashboardScreenState extends ConsumerState<NewDashboardScreen> {
         const SizedBox(width: 12),
         Expanded(
           child: _buildActionCard(
-            'Doctor Chat',
-            Iconsax.message,
+            'Health Records',
+            Iconsax.heart,
             const Color(0xFF10B981),
-            () => context.go('/chat'),
+            () => context.go('/health-records'),
           ),
         ),
       ],
@@ -683,6 +685,79 @@ class _NewDashboardScreenState extends ConsumerState<NewDashboardScreen> {
                   color: AppTheme.textSecondary,
                 ),
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPendingBills() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Iconsax.receipt, color: Color(0xFFF59E0B), size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Pending Bills',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              children: [
+                Image.asset(
+                  'assets/images/no_pending_bills.png',
+                  width: 80,
+                  height: 80,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'No pending bills',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'All your bills are up to date',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

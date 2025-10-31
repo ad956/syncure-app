@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../api/api_service.dart';
-import '../models/booking_data.dart';
+
 import 'dart:developer' as developer;
 
 class BookingState {

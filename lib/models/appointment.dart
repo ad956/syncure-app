@@ -6,6 +6,7 @@ class Appointment {
   final String status;
   final String disease;
   final String? timing;
+  final String? appointmentTime;
   final String? doctorSpecialty;
   final String? notes;
 
@@ -17,6 +18,7 @@ class Appointment {
     required this.status,
     required this.disease,
     this.timing,
+    this.appointmentTime,
     this.doctorSpecialty,
     this.notes,
   });
@@ -30,6 +32,7 @@ class Appointment {
       status: json['approved'] ?? json['status'],
       disease: json['disease'],
       timing: json['timing'],
+      appointmentTime: json['appointmentTime'] ?? json['timing'] ?? '10:00 AM',
       doctorSpecialty: json['doctor']?['specialty'],
       notes: json['note'] ?? json['notes'],
     );
