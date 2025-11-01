@@ -36,13 +36,27 @@ class AppointmentsNotifier extends StateNotifier<AppointmentsState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       final response = await _apiService.getAppointments();
-      if (response.statusCode == 200 && response.data is List) {
+      if (response.statusCode == 200) {
+        developer.log('📋 Appointments API Response: ${response.data}');
+        
+        // Handle different response formats
+        List<dynamic> appointmentsData;
+        if (response.data is List) {
+          appointmentsData = response.data as List;
+        } else if (response.data is Map && response.data['appointments'] != null) {
+          appointmentsData = response.data['appointments'] as List;
+        } else if (response.data is Map && response.data['data'] != null) {
+          appointmentsData = response.data['data'] as List;
+        } else {
+          throw Exception('Invalid response format: ${response.data.runtimeType}');
+        }
+        
         final List<Appointment> appointments = 
-            (response.data as List).map((json) => Appointment.fromJson(json)).toList();
+            appointmentsData.map((json) => Appointment.fromJson(json)).toList();
         state = state.copyWith(isLoading: false, appointments: appointments);
         developer.log('✅ Fetched ${appointments.length} appointments');
       } else {
-        throw Exception('Invalid response format');
+        throw Exception('HTTP ${response.statusCode}');
       }
     } catch (e) {
       developer.log('❌ Failed to fetch appointments: $e');

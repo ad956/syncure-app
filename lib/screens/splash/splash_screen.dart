@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
+import '../../routes/app_routes.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -40,19 +41,29 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   void _startAnimation() async {
-    // Check session immediately
-    await ref.read(authProvider.notifier).loadSession();
+    try {
+      // Check session with error handling
+      await ref.read(authProvider.notifier).loadSession();
+    } catch (e) {
+      print('Session load error: $e');
+    }
     
     await _logoController.forward();
     await _textController.forward();
     await Future.delayed(const Duration(milliseconds: 500));
     
     if (mounted) {
-      final authState = ref.read(authProvider);
-      if (authState.user != null) {
-        context.go('/dashboard');
-      } else {
-        context.go('/login');
+      try {
+        final authState = ref.read(authProvider);
+        if (authState.user != null) {
+          context.go(AppRoutes.dashboard);
+        } else {
+          context.go(AppRoutes.login);
+        }
+      } catch (e) {
+        print('Navigation error: $e');
+        // Fallback to login on any error
+        context.go(AppRoutes.login);
       }
     }
   }
@@ -94,6 +105,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                       'assets/icons/patient.png',
                       width: 120,
                       height: 120,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: const Icon(
+                            Icons.local_hospital,
+                            size: 60,
+                            color: Colors.white,
+                          ),
+                        );
+                      },
                     ),
                   ),
                 );

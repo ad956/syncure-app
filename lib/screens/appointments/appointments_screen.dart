@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:iconsax/iconsax.dart';
+import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import '../../themes/app_theme.dart';
-import '../../widgets/mobile_layout.dart';
-import '../../providers/auth_provider.dart';
+import '../../widgets/responsive_layout.dart';
+import '../../widgets/common_widgets.dart';
 import '../../providers/appointments_provider.dart';
+import '../../models/appointment.dart';
 
 class AppointmentsScreen extends ConsumerStatefulWidget {
   const AppointmentsScreen({super.key});
@@ -13,172 +17,210 @@ class AppointmentsScreen extends ConsumerStatefulWidget {
 }
 
 class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
-    with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  String _selectedState = '';
-  String _selectedCity = '';
-  String _selectedHospital = '';
-  String _selectedDisease = '';
-  final TextEditingController _notesController = TextEditingController();
-  
-  List<String> _states = [];
-  List<String> _cities = [];
-  List<String> _hospitals = [];
-  List<String> _diseases = [];
-  
-  bool _isLoadingStates = false;
-  bool _isLoadingCities = false;
-  bool _isLoadingHospitals = false;
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-    _animationController.forward();
-    
-    // Fetch appointments data and load initial data
+    _tabController = TabController(length: 4, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(appointmentsProvider.notifier).fetchAppointments();
-      _loadStates();
     });
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
-    _notesController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return MobileLayout(
+    final appointments = ref.watch(appointmentsProvider);
+    
+    return ResponsiveLayout(
       currentRoute: '/appointments',
-      child: Container(
-        color: const Color(0xFFF8FAFC),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: AnimatedBuilder(
-            animation: _fadeAnimation,
-            builder: (context, child) {
-              return FadeTransition(
-                opacity: _fadeAnimation,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(),
-                    const SizedBox(height: 24),
-                    _buildBookingForm(),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
+      child: ResponsiveBuilder(
+        mobile: _buildMobileView(appointments),
+        tablet: _buildTabletView(appointments),
+        desktop: _buildDesktopView(appointments),
       ),
     );
   }
 
-
-
-  Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Consumer(
-          builder: (context, ref, child) {
-            final authState = ref.watch(authProvider);
-            final userName = authState.user?.firstName ?? 'User';
-            return Text(
-              'Welcome to your appointments, $userName!',
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.textPrimary,
-                height: 1.3,
-              ),
-            );
-          },
+  Widget _buildMobileView(AppointmentsState appointments) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      appBar: AppBar(
+        title: const Text('My Appointments'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        bottom: TabBar(
+          controller: _tabController,
+          labelColor: const Color(0xFF6366F1),
+          unselectedLabelColor: AppTheme.textSecondary,
+          indicatorColor: const Color(0xFF6366F1),
+          tabs: const [
+            Tab(text: 'All'),
+            Tab(text: 'Pending'),
+            Tab(text: 'Approved'),
+            Tab(text: 'Completed'),
+          ],
         ),
-        const SizedBox(height: 12),
-        const Text(
-          'Book your medical appointments easily. Select your preferred location, hospital, and provide your health concerns to get started.',
-          style: TextStyle(
-            fontSize: 15,
-            color: AppTheme.textSecondary,
-            height: 1.5,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          width: double.infinity,
-          height: 140,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFF6366F1).withOpacity(0.1),
-                const Color(0xFFE95B7B).withOpacity(0.1),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildAppointmentsList(appointments.appointments),
+          _buildAppointmentsList(appointments.appointments.where((a) => a.status == 'pending').toList()),
+          _buildAppointmentsList(appointments.appointments.where((a) => a.status == 'approved').toList()),
+          _buildAppointmentsList(appointments.appointments.where((a) => a.status == 'completed').toList()),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.go('/book-appointment'),
+        backgroundColor: const Color(0xFF6366F1),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Book Appointment', style: TextStyle(color: Colors.white)),
+      ),
+    );
+  }
+
+  Widget _buildTabletView(AppointmentsState appointments) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            color: Colors.white,
+            child: Row(
+              children: [
+                const Text(
+                  'My Appointments',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+                const Spacer(),
+                ElevatedButton.icon(
+                  onPressed: () => context.go('/book-appointment'),
+                  icon: const Icon(Icons.add),
+                  label: const Text('Book Appointment'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF6366F1),
+                    foregroundColor: Colors.white,
+                  ),
+                ),
               ],
             ),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFF6366F1).withOpacity(0.2),
-              width: 1,
+          ),
+          TabBar(
+            controller: _tabController,
+            labelColor: const Color(0xFF6366F1),
+            unselectedLabelColor: AppTheme.textSecondary,
+            indicatorColor: const Color(0xFF6366F1),
+            tabs: const [
+              Tab(text: 'All'),
+              Tab(text: 'Pending'),
+              Tab(text: 'Approved'),
+              Tab(text: 'Completed'),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildAppointmentsList(appointments.appointments),
+                _buildAppointmentsList(appointments.appointments.where((a) => a.status == 'pending').toList()),
+                _buildAppointmentsList(appointments.appointments.where((a) => a.status == 'approved').toList()),
+                _buildAppointmentsList(appointments.appointments.where((a) => a.status == 'completed').toList()),
+              ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDesktopView(AppointmentsState appointments) {
+    return _buildTabletView(appointments); // Same as tablet for now
+  }
+
+  Widget _buildAppointmentsList(List<Appointment> appointments) {
+    if (appointments.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: const Color(0xFF6366F1).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.calendar_today_rounded,
-                  size: 32,
+                  Iconsax.calendar,
+                  size: 48,
                   color: Color(0xFF6366F1),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
               const Text(
-                'Schedule Your Appointment',
+                'No appointments found',
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                   color: AppTheme.textPrimary,
                 ),
               ),
+              const SizedBox(height: 8),
               const Text(
-                'Quick & Easy Booking',
+                'Book your first appointment to get started',
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 14,
                   color: AppTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: () => context.go('/book-appointment'),
+                icon: const Icon(Icons.add),
+                label: const Text('Book Appointment'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
               ),
             ],
           ),
         ),
-      ],
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: appointments.length,
+      itemBuilder: (context, index) {
+        final appointment = appointments[index];
+        return _buildAppointmentCard(appointment);
+      },
     );
   }
 
-  Widget _buildBookingForm() {
+  Widget _buildAppointmentCard(Appointment appointment) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -187,274 +229,145 @@ class _AppointmentsScreenState extends ConsumerState<AppointmentsScreen>
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Book an appointment',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 20),
-          _buildDropdown(
-            'Select State *',
-            _selectedState,
-            _states,
-            (value) {
-              setState(() {
-                _selectedState = value!;
-                _selectedCity = '';
-                _selectedHospital = '';
-                _cities = [];
-                _hospitals = [];
-              });
-              _loadCities(_selectedState);
-            },
-            isLoading: _isLoadingStates,
-          ),
-          const SizedBox(height: 16),
-          _buildDropdown(
-            'Select City *',
-            _selectedCity,
-            _cities,
-            (value) {
-              setState(() {
-                _selectedCity = value!;
-                _selectedHospital = '';
-                _hospitals = [];
-              });
-              _loadHospitals(_selectedCity);
-            },
-            isLoading: _isLoadingCities,
-            enabled: _selectedState.isNotEmpty,
-          ),
-          const SizedBox(height: 16),
-          _buildDropdown(
-            'Select Hospital *',
-            _selectedHospital,
-            _hospitals,
-            (value) => setState(() => _selectedHospital = value!),
-            isLoading: _isLoadingHospitals,
-            enabled: _selectedCity.isNotEmpty,
-          ),
-          const SizedBox(height: 16),
-          _buildDropdown(
-            'Select Disease *',
-            _selectedDisease,
-            _diseases,
-            (value) => setState(() => _selectedDisease = value!),
-          ),
-          const SizedBox(height: 16),
-          _buildTextField(
-            'Additional Note *',
-            'Enter your description',
-            _notesController,
-            maxLines: 4,
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Appointment request submitted successfully!'),
-                    backgroundColor: Colors.green,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF6366F1).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE95B7B),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  child: const Icon(
+                    Iconsax.hospital,
+                    color: Color(0xFF6366F1),
+                    size: 28,
+                  ),
                 ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        appointment.hospitalName,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        appointment.doctorName,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(appointment.status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    appointment.status.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: _getStatusColor(appointment.status),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text(
-                'Request Appointment',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(Iconsax.calendar, size: 16, color: Color(0xFF6366F1)),
+                        const SizedBox(width: 8),
+                        Text(
+                          DateFormat('MMM dd, yyyy').format(appointment.date),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(Iconsax.clock, size: 16, color: Color(0xFF6366F1)),
+                        const SizedBox(width: 8),
+                        Text(
+                          appointment.appointmentTime ?? '10:00 AM',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-        ],
+            if (appointment.disease.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  const Icon(Iconsax.health, size: 16, color: Color(0xFFEF4444)),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Condition: ${appointment.disease}',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _loadStates() async {
-    setState(() => _isLoadingStates = true);
-    try {
-      await Future.delayed(const Duration(milliseconds: 500));
-      setState(() {
-        _states = ['Maharashtra', 'Karnataka', 'Tamil Nadu', 'Gujarat', 'Rajasthan'];
-        _diseases = ['General Consultation', 'Fever', 'Cold & Cough', 'Headache', 'Stomach Pain'];
-        _isLoadingStates = false;
-      });
-    } catch (e) {
-      setState(() => _isLoadingStates = false);
-    }
-  }
-  
-  Future<void> _loadCities(String state) async {
-    setState(() => _isLoadingCities = true);
-    try {
-      await Future.delayed(const Duration(milliseconds: 500));
-      setState(() {
-        _cities = _getCitiesForState(state);
-        _isLoadingCities = false;
-      });
-    } catch (e) {
-      setState(() => _isLoadingCities = false);
-    }
-  }
-  
-  Future<void> _loadHospitals(String city) async {
-    setState(() => _isLoadingHospitals = true);
-    try {
-      await Future.delayed(const Duration(milliseconds: 500));
-      setState(() {
-        _hospitals = _getHospitalsForCity(city);
-        _isLoadingHospitals = false;
-      });
-    } catch (e) {
-      setState(() => _isLoadingHospitals = false);
-    }
-  }
-  
-  List<String> _getCitiesForState(String state) {
-    switch (state) {
-      case 'Maharashtra':
-        return ['Mumbai', 'Pune', 'Nagpur'];
-      case 'Karnataka':
-        return ['Bangalore', 'Mysore', 'Hubli'];
-      case 'Tamil Nadu':
-        return ['Chennai', 'Coimbatore', 'Madurai'];
-      case 'Gujarat':
-        return ['Ahmedabad', 'Surat', 'Vadodara'];
-      case 'Rajasthan':
-        return ['Jaipur', 'Jodhpur', 'Udaipur'];
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'approved':
+        return const Color(0xFF10B981);
+      case 'pending':
+        return const Color(0xFFF59E0B);
+      case 'completed':
+        return const Color(0xFF6366F1);
+      case 'cancelled':
+        return const Color(0xFFEF4444);
       default:
-        return [];
+        return const Color(0xFF6B7280);
     }
-  }
-  
-  List<String> _getHospitalsForCity(String city) {
-    switch (city) {
-      case 'Mumbai':
-        return ['Apollo Hospital Mumbai', 'Fortis Hospital Mulund', 'Lilavati Hospital'];
-      case 'Bangalore':
-        return ['Manipal Hospital', 'Narayana Health City', 'Apollo Hospital Bangalore'];
-      case 'Chennai':
-        return ['Apollo Hospital Chennai', 'Fortis Malar Hospital', 'MIOT International'];
-      default:
-        return ['City General Hospital', 'Metro Medical Center'];
-    }
-  }
-
-  Widget _buildDropdown(String label, String value, List<String> items, Function(String?) onChanged, {bool isLoading = false, bool enabled = true}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppTheme.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: value.isEmpty ? null : value,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            suffixIcon: isLoading 
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: Padding(
-                      padding: EdgeInsets.all(12),
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : null,
-          ),
-          hint: Text(
-            enabled ? label.replaceAll(' *', '') : 'Select previous option first',
-            style: TextStyle(
-              color: enabled ? const Color(0xFF9CA3AF) : const Color(0xFFD1D5DB),
-            ),
-          ),
-          items: items.map((String item) {
-            return DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            );
-          }).toList(),
-          onChanged: enabled && !isLoading ? onChanged : null,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTextField(String label, String hint, TextEditingController controller, {int maxLines = 1}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppTheme.textSecondary,
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          controller: controller,
-          maxLines: maxLines,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          ),
-        ),
-      ],
-    );
   }
 }

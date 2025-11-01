@@ -277,14 +277,23 @@ class _HealthRecordsScreenState extends ConsumerState<HealthRecordsScreen>
             ),
           ),
           const SizedBox(height: 8),
-          Row(
+          Wrap(
             children: [
               if (vital.weight != null)
-                _buildVitalMetric('Weight', '${vital.weight!.toInt()} kg', Iconsax.weight),
+                SizedBox(
+                  width: 100,
+                  child: _buildVitalMetric('Weight', '${vital.weight!.toInt()} kg', Iconsax.weight),
+                ),
               if (vital.systolicBp != null && vital.diastolicBp != null)
-                _buildVitalMetric('BP', '${vital.systolicBp}/${vital.diastolicBp}', Iconsax.heart),
+                SizedBox(
+                  width: 100,
+                  child: _buildVitalMetric('BP', '${vital.systolicBp}/${vital.diastolicBp}', Iconsax.heart),
+                ),
               if (vital.heartRate != null)
-                _buildVitalMetric('HR', '${vital.heartRate} bpm', Iconsax.activity),
+                SizedBox(
+                  width: 100,
+                  child: _buildVitalMetric('HR', '${vital.heartRate} bpm', Iconsax.activity),
+                ),
             ],
           ),
         ],
@@ -293,12 +302,13 @@ class _HealthRecordsScreenState extends ConsumerState<HealthRecordsScreen>
   }
 
   Widget _buildVitalMetric(String label, String value, IconData icon) {
-    return Expanded(
-      child: Row(
-        children: [
-          Icon(icon, size: 16, color: const Color(0xFF6366F1)),
-          const SizedBox(width: 4),
-          Column(
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: const Color(0xFF6366F1)),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -307,6 +317,7 @@ class _HealthRecordsScreenState extends ConsumerState<HealthRecordsScreen>
                   fontSize: 10,
                   color: AppTheme.textSecondary,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
               Text(
                 value,
@@ -315,11 +326,12 @@ class _HealthRecordsScreenState extends ConsumerState<HealthRecordsScreen>
                   fontWeight: FontWeight.w600,
                   color: AppTheme.textPrimary,
                 ),
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

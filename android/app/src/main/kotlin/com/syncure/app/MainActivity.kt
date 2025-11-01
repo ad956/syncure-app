@@ -1,4 +1,4 @@
-package com.example.app
+package com.syncure.app
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -373,28 +373,43 @@ class _MobileLayoutState extends State<MobileLayout>
   Widget _buildBottomNavBar(BuildContext context) {
     final items = [
       {'icon': Iconsax.home_1, 'activeIcon': Iconsax.home_15, 'label': 'Home', 'route': '/dashboard'},
-      {'icon': Iconsax.scan_barcode, 'activeIcon': Iconsax.scan_barcode, 'label': 'QR', 'route': '/qr'},
+      {'icon': Iconsax.message, 'activeIcon': Iconsax.message5, 'label': 'Chat', 'route': '/chat'},
       {'icon': Iconsax.calendar, 'activeIcon': Iconsax.calendar5, 'label': 'Appts', 'route': '/appointments'},
-      {'icon': Iconsax.card, 'activeIcon': Iconsax.card, 'label': 'Payments', 'route': '/payments'},
-      {'icon': Iconsax.health, 'activeIcon': Iconsax.health5, 'label': 'History', 'route': '/medical-history'},
+      {'icon': Iconsax.card, 'activeIcon': Iconsax.card5, 'label': 'Pay', 'route': '/payments'},
+      {'icon': Iconsax.health, 'activeIcon': Iconsax.health5, 'label': 'Records', 'route': '/health-records'},
     ];
 
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      backgroundColor: Colors.white,
-      selectedItemColor: const Color(0xFFF31260),
-      unselectedItemColor: AppTheme.textSecondary,
-      currentIndex: items.indexWhere((item) => item['route'] == widget.currentRoute) != -1 
-          ? items.indexWhere((item) => item['route'] == widget.currentRoute) 
-          : 0,
-      onTap: (index) => context.go(items[index]['route'] as String),
-      items: items.map((item) {
-        return BottomNavigationBarItem(
-          icon: Icon(item['icon'] as IconData),
-          activeIcon: Icon(item['activeIcon'] as IconData),
-          label: item['label'] as String,
-        );
-      }).toList(),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: BottomNavigationBar(
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        selectedItemColor: const Color(0xFF6366F1),
+        unselectedItemColor: AppTheme.textSecondary,
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+        currentIndex: items.indexWhere((item) => item['route'] == widget.currentRoute) != -1 
+            ? items.indexWhere((item) => item['route'] == widget.currentRoute) 
+            : 0,
+        onTap: (index) => context.go(items[index]['route'] as String),
+        items: items.map((item) {
+          return BottomNavigationBarItem(
+            icon: Icon(item['icon'] as IconData, size: 22),
+            activeIcon: Icon(item['activeIcon'] as IconData, size: 22),
+            label: item['label'] as String,
+          );
+        }).toList(),
+      ),
     );
   }
 
@@ -406,6 +421,8 @@ class _MobileLayoutState extends State<MobileLayout>
         return const Text('Lab Results', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF32325D)));
       case '/doctors':
         return const Text('My Doctors', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF32325D)));
+      case '/chat':
+        return const Text('Chat with Doctors', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF32325D)));
       default:
         return Row(
           children: [

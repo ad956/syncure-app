@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:fl_chart/fl_chart.dart';
-import '../../themes/app_theme.dart';
-import '../../widgets/mobile_layout.dart';
-import '../../providers/auth_provider.dart';
-import '../../providers/dashboard_provider.dart';
-import '../../providers/medicines_provider.dart';
-import '../../providers/appointments_provider.dart';
-import 'dashboard_widgets.dart';
-import 'package:iconsax/iconsax.dart';
 import 'package:go_router/go_router.dart';
+import 'package:iconsax/iconsax.dart';
+import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
+import '../../themes/app_theme.dart';
+import '../../widgets/responsive_layout.dart';
+import '../../widgets/common_widgets.dart';
+import '../../widgets/safe_widget.dart';
+import '../../services/toast_service.dart';
+import '../../providers/new_dashboard_provider.dart';
+import '../../providers/appointments_provider.dart';
+import '../../models/dashboard.dart';
+import '../../models/appointment.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -18,830 +21,187 @@ class DashboardScreen extends ConsumerStatefulWidget {
   ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends ConsumerState<DashboardScreen>
-    with TickerProviderStateMixin, DashboardWidgets {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   DateTime _selectedDay = DateTime.now();
   DateTime _focusedDay = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-    _animationController.forward();
-    
-    // Fetch dashboard data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(dashboardProvider.notifier).fetchDashboard();
-      ref.read(medicinesProvider.notifier).fetchMedicines();
+      ref.read(newDashboardProvider.notifier).fetchDashboard();
       ref.read(appointmentsProvider.notifier).fetchAppointments();
     });
   }
 
   @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    return MobileLayout(
+    final dashboard = ref.watch(newDashboardProvider);
+    
+    return ResponsiveLayout(
       currentRoute: '/dashboard',
-      child: Container(
-        color: const Color(0xFFF8FAFC),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: AnimatedBuilder(
-            animation: _fadeAnimation,
-            builder: (context, child) {
-              return FadeTransition(
-                opacity: _fadeAnimation,
-                child: Column(
-                  children: [
-                    _buildUserCard(),
-                    const SizedBox(height: 16),
-                    _buildHealthMetrics(),
-                    const SizedBox(height: 16),
-                    _buildQuickActions(),
-                    const SizedBox(height: 16),
-                    _buildMedicinesCard(),
-                    const SizedBox(height: 16),
-                    buildCalendar(_selectedDay, _focusedDay, (selectedDay, focusedDay) {
-                      setState(() {
-                        _selectedDay = selectedDay;
-                        _focusedDay = focusedDay;
-                      });
-                    }, context, ref),
-                    const SizedBox(height: 16),
-                    _buildHealthChart(),
-
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
+      child: ResponsiveBuilder(
+        mobile: _buildMobileLayout(dashboard),
+        tablet: _buildTabletLayout(dashboard),
+        desktop: _buildDesktopLayout(dashboard),
       ),
     );
   }
 
-
-
-  Widget _buildUserCard() {
-    final authState = ref.watch(authProvider);
-    final user = authState.user;
-    
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFF8FAFC),
-            Colors.white,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
+  Widget _buildMobileLayout(DashboardResponse? dashboard) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildWelcomeHeader(dashboard),
+          const SizedBox(height: 16),
+          _buildPatientCard(dashboard),
+          const SizedBox(height: 16),
+          _buildHealthMetricsRow(dashboard),
+          const SizedBox(height: 16),
+          _buildTodaysVitals(dashboard),
+          const SizedBox(height: 16),
+          _buildQuickActions(),
+          const SizedBox(height: 16),
+          _buildUpcomingAppointments(dashboard),
+          const SizedBox(height: 16),
+          _buildPendingBills(),
+          const SizedBox(height: 16),
+          _buildMedications(dashboard),
         ],
       ),
+    );
+  }
+
+  Widget _buildTabletLayout(DashboardResponse? dashboard) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _buildWelcomeHeader(dashboard),
+          const SizedBox(height: 24),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: const Color(0xFF6366F1),
-                    width: 3,
-                  ),
-                ),
-                child: CircleAvatar(
-                  radius: 35,
-                  backgroundImage: user?.image != null 
-                      ? NetworkImage(user!.image!) 
-                      : const AssetImage('assets/images/admin.png') as ImageProvider,
+              Expanded(
+                flex: 2,
+                child: Column(
+                  children: [
+                    _buildPatientCard(dashboard),
+                    const SizedBox(height: 24),
+                    _buildTodaysVitals(dashboard),
+                  ],
                 ),
               ),
-              const SizedBox(width: 20),
+              const SizedBox(width: 24),
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      user?.name.isNotEmpty == true ? user!.name : 'John Doe',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      user?.email ?? 'john.doe@example.com',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                    if (user?.phone != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        user!.phone!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Text(
-                        'Premium Patient',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF10B981),
-                        ),
-                      ),
-                    ),
+                    _buildHealthMetricsRow(dashboard),
+                    const SizedBox(height: 24),
+                    _buildQuickActions(),
+                    const SizedBox(height: 24),
+                    _buildMedications(dashboard),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFF6366F1).withOpacity(0.1),
-                width: 1,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Health Profile',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildDetailCard('Age', user?.age?.toString() ?? '28', 'Years', Icons.cake),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildDetailCard('Blood', user?.bloodGroup ?? 'O+', 'Group', Icons.bloodtype),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildDetailCard('Height', user?.height?.toString() ?? '5.8', 'ft', Icons.height),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildDetailCard('Weight', user?.weight?.toString() ?? '70', 'kg', Icons.monitor_weight),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildDetailCard(String label, String value, String unit, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: const Color(0xFF6366F1).withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            color: const Color(0xFF6366F1),
-            size: 20,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '$label ($unit)',
-            style: const TextStyle(
-              fontSize: 10,
-              color: AppTheme.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-
-
-
-
-
-
-  Widget _buildHealthMetrics() {
-    final dashboardData = ref.watch(dashboardProvider);
-    
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildMetricCard(
-                'General Health',
-                '${dashboardData?.healthScore ?? 85}%',
-                const Color(0xFFE95B7B),
-                (dashboardData?.healthScore ?? 85) / 100,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildMetricCard(
-                'Water Balance',
-                '${dashboardData?.waterBalance ?? 78}%',
-                const Color(0xFF038EF5),
-                (dashboardData?.waterBalance ?? 78) / 100,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: _buildMetricCard(
-                'Current Treatment',
-                '${dashboardData?.currentTreatment ?? 10}%',
-                const Color(0xFF466EFC),
-                (dashboardData?.currentTreatment ?? 10) / 100,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Pending Appointments',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${dashboardData?.upcomingAppointments ?? 0}',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMetricCard(String title, String value, Color color, double progress) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppTheme.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 12),
-          LinearProgressIndicator(
-            value: progress,
-            backgroundColor: color.withOpacity(0.2),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMedicinesCard() {
-    final medicines = ref.watch(medicinesProvider);
-    
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Iconsax.health,
-                  color: Color(0xFF10B981),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Current Medicines',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          if (medicines == null)
-            _buildMedicinesLoading()
-          else if (medicines.isEmpty)
-            _buildNoMedicines()
-          else
-            _buildMedicinesList(medicines),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMedicinesLoading() {
-    return Container(
-      height: 120,
-      child: const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNoMedicines() {
-    return Container(
+  Widget _buildDesktopLayout(DashboardResponse? dashboard) {
+    return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFF6366F1).withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Iconsax.health,
-              size: 32,
-              color: Color(0xFF6366F1),
-            ),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'No Active Medicines',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'You don\'t have any active prescriptions at the moment. Consult with your doctor for any health concerns.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppTheme.textSecondary,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 16),
-          ElevatedButton.icon(
-            onPressed: () {
-              context.go('/book-appointment');
-            },
-            icon: const Icon(Iconsax.calendar, size: 16),
-            label: const Text('Book Appointment'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF6366F1),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+          _buildWelcomeHeader(dashboard),
+          const SizedBox(height: 32),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: Column(
+                  children: [
+                    _buildPatientCard(dashboard),
+                    const SizedBox(height: 32),
+                    _buildTodaysVitals(dashboard),
+                  ],
+                ),
               ),
-            ),
+              const SizedBox(width: 32),
+              Expanded(
+                flex: 2,
+                child: Column(
+                  children: [
+                    _buildHealthMetricsRow(dashboard),
+                    const SizedBox(height: 32),
+                    _buildQuickActions(),
+                    const SizedBox(height: 32),
+                    _buildMedications(dashboard),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildMedicinesList(List<Medicine> medicines) {
-    final activeMedicines = medicines.where((m) => m.isActive).take(3).toList();
+  Widget _buildWelcomeHeader(DashboardResponse? dashboard) {
+    final now = DateTime.now();
+    final timeString = DateFormat('h:mm:ss a').format(now);
     
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        ...activeMedicines.map((medicine) => _buildMedicineItem(medicine)),
-        if (medicines.length > 3)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: TextButton(
-              onPressed: () {
-                // Navigate to full medicines list
-              },
-              child: Text(
-                'View all ${medicines.length} medicines',
-                style: const TextStyle(
-                  color: Color(0xFF6366F1),
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
+        Text(
+          'Welcome back, ${dashboard?.patient.firstname ?? 'John'}!',
+          style: const TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimary,
           ),
-      ],
-    );
-  }
-
-  Widget _buildMedicineItem(Medicine medicine) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF10B981).withOpacity(0.2),
-          width: 1,
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: _getMedicineTypeColor(medicine.type).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              _getMedicineTypeIcon(medicine.type),
-              color: _getMedicineTypeColor(medicine.type),
-              size: 16,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  medicine.name,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${medicine.dosage} • ${medicine.frequency}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Text(
-              'Active',
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 16),
+            const SizedBox(width: 8),
+            const Text(
+              'Your health data is secure and up to date',
               style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF10B981),
+                fontSize: 14,
+                color: AppTheme.textSecondary,
               ),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  IconData _getMedicineTypeIcon(String type) {
-    switch (type.toLowerCase()) {
-      case 'tablet':
-      case 'pill':
-        return Iconsax.health;
-      case 'syrup':
-      case 'liquid':
-        return Iconsax.drop;
-      case 'injection':
-        return Iconsax.health;
-      case 'capsule':
-        return Iconsax.health;
-      default:
-        return Iconsax.health;
-    }
-  }
-
-  Color _getMedicineTypeColor(String type) {
-    switch (type.toLowerCase()) {
-      case 'tablet':
-      case 'pill':
-        return const Color(0xFF6366F1);
-      case 'syrup':
-      case 'liquid':
-        return const Color(0xFF10B981);
-      case 'injection':
-        return const Color(0xFFEF4444);
-      case 'capsule':
-        return const Color(0xFFF59E0B);
-      default:
-        return const Color(0xFF6366F1);
-    }
-  }
-
-
-
-  Widget _buildPieCharts() {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+            const Spacer(),
+            Text(
+              'Last sync\n$timeString',
+              textAlign: TextAlign.right,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppTheme.textSecondary,
+              ),
             ),
-            child: Column(
-              children: [
-                const Text(
-                  'Health Activities',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 120,
-                  child: PieChart(
-                    PieChartData(
-                      sections: [
-                        PieChartSectionData(value: 45, color: const Color(0xFF6366F1), radius: 40, showTitle: false),
-                        PieChartSectionData(value: 25, color: const Color(0xFF10B981), radius: 40, showTitle: false),
-                        PieChartSectionData(value: 20, color: const Color(0xFFF59E0B), radius: 40, showTitle: false),
-                        PieChartSectionData(value: 10, color: const Color(0xFFEF4444), radius: 40, showTitle: false),
-                      ],
-                      sectionsSpace: 2,
-                      centerSpaceRadius: 30,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Row(
-                  children: [
-                    Icon(Icons.circle, color: Color(0xFF6366F1), size: 8),
-                    SizedBox(width: 6),
-                    Text('Consultations 45%', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                const Row(
-                  children: [
-                    Icon(Icons.circle, color: Color(0xFF10B981), size: 8),
-                    SizedBox(width: 6),
-                    Text('Lab Tests 25%', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                const Row(
-                  children: [
-                    Icon(Icons.circle, color: Color(0xFFF59E0B), size: 8),
-                    SizedBox(width: 6),
-                    Text('Medications 20%', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                const Row(
-                  children: [
-                    Icon(Icons.circle, color: Color(0xFFEF4444), size: 8),
-                    SizedBox(width: 6),
-                    Text('Follow-ups 10%', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                const Text(
-                  'Monthly Visits',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 120,
-                  child: PieChart(
-                    PieChartData(
-                      sections: [
-                        PieChartSectionData(
-                          value: 60,
-                          color: const Color(0xFF10B981),
-                          radius: 40,
-                          showTitle: false,
-                        ),
-                        PieChartSectionData(
-                          value: 25,
-                          color: const Color(0xFFF59E0B),
-                          radius: 40,
-                          showTitle: false,
-                        ),
-                        PieChartSectionData(
-                          value: 15,
-                          color: const Color(0xFFEF4444),
-                          radius: 40,
-                          showTitle: false,
-                        ),
-                      ],
-                      sectionsSpace: 2,
-                      centerSpaceRadius: 30,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Row(
-                  children: [
-                    Icon(Icons.circle, color: Color(0xFF10B981), size: 8),
-                    SizedBox(width: 6),
-                    Text('Completed 60%', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                const Row(
-                  children: [
-                    Icon(Icons.circle, color: Color(0xFFF59E0B), size: 8),
-                    SizedBox(width: 6),
-                    Text('Pending 25%', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                const Row(
-                  children: [
-                    Icon(Icons.circle, color: Color(0xFFEF4444), size: 8),
-                    SizedBox(width: 6),
-                    Text('Cancelled 15%', style: TextStyle(fontSize: 10, color: AppTheme.textSecondary)),
-                  ],
-                ),
-              ],
-            ),
-          ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _buildHealthChart() {
+  Widget _buildPatientCard(DashboardResponse? dashboard) {
+    final patient = dashboard?.patient;
+    
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -854,206 +214,271 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF038EF5).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.trending_up,
-                  color: Color(0xFF038EF5),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Health Progress',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      'Your health metrics over the past year',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  '+12% this month',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF10B981),
+              Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundImage: patient?.profile != null 
+                        ? NetworkImage(patient!.profile!) 
+                        : const AssetImage('assets/images/admin.png') as ImageProvider,
                   ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 200,
-            child: LineChart(
-              LineChartData(
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: 20,
-                  getDrawingHorizontalLine: (value) {
-                    return FlLine(
-                      color: const Color(0xFFE5E7EB),
-                      strokeWidth: 1,
-                    );
-                  },
-                ),
-                titlesData: FlTitlesData(
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 40,
-                      interval: 20,
-                      getTitlesWidget: (value, meta) {
-                        return Text(
-                          '${value.toInt()}%',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: AppTheme.textSecondary,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      getTitlesWidget: (value, meta) {
-                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                        if (value.toInt() >= 0 && value.toInt() < months.length) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              months[value.toInt()],
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: AppTheme.textSecondary,
-                              ),
-                            ),
-                          );
-                        }
-                        return const Text('');
-                      },
-                    ),
-                  ),
-                ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: const Border(
-                    bottom: BorderSide(color: Color(0xFFE5E7EB), width: 1),
-                    left: BorderSide(color: Color(0xFFE5E7EB), width: 1),
-                  ),
-                ),
-                minX: 0,
-                maxX: 11,
-                minY: 0,
-                maxY: 100,
-                lineBarsData: [
-                  LineChartBarData(
-                    spots: const [
-                      FlSpot(0, 65), FlSpot(1, 70), FlSpot(2, 75), FlSpot(3, 68),
-                      FlSpot(4, 72), FlSpot(5, 78), FlSpot(6, 82), FlSpot(7, 85),
-                      FlSpot(8, 88), FlSpot(9, 92), FlSpot(10, 89), FlSpot(11, 95),
-                    ],
-                    isCurved: true,
-                    curveSmoothness: 0.3,
-                    color: const Color(0xFF038EF5),
-                    barWidth: 3,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(
-                      show: true,
-                      getDotPainter: (spot, percent, barData, index) {
-                        return FlDotCirclePainter(
-                          radius: 4,
-                          color: Colors.white,
-                          strokeWidth: 2,
-                          strokeColor: const Color(0xFF038EF5),
-                        );
-                      },
-                    ),
-                    belowBarData: BarAreaData(
-                      show: true,
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          const Color(0xFF038EF5).withOpacity(0.3),
-                          const Color(0xFF038EF5).withOpacity(0.05),
-                        ],
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF10B981),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
                       ),
                     ),
                   ),
                 ],
               ),
-            ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      patient?.name ?? 'John Doe',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(Icons.phone, size: 14, color: AppTheme.textSecondary),
+                        const SizedBox(width: 4),
+                        Text(
+                          patient?.contact ?? '+1 9876543210',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(Icons.email, size: 14, color: AppTheme.textSecondary),
+                        const SizedBox(width: 4),
+                        Text(
+                          patient?.email ?? 'john@example.com',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Icon(Icons.qr_code, size: 40, color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF038EF5),
-                  shape: BoxShape.circle,
-                ),
+              Expanded(
+                child: _buildInfoCard('Patient ID', '#f171e', Icons.badge),
               ),
-              const SizedBox(width: 8),
-              const Text(
-                'Overall Health Score',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.textSecondary,
-                ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildInfoCard('Age', '21 years', Icons.cake),
               ),
-              const Spacer(),
-              const Text(
-                'Current: 95%',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF10B981),
-                ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildInfoCard('Blood Type', 'O+', Icons.bloodtype),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Scan at hospital reception\nfor instant check-in',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.download, size: 16),
+              label: const Text('Download Patient Card'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildInfoCard(String label, String value, IconData icon) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHealthMetricsRow(DashboardResponse? dashboard) {
+    final metrics = dashboard?.healthMetrics;
+    final nextAppt = dashboard?.nextAppointment;
+    
+    return SafeWidget(
+      fallbackMessage: 'Health metrics error',
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Row(
+            children: [
+              Expanded(
+                child: _buildMetricCard(
+                  'NEXT APPOINTMENT',
+                  nextAppt != null ? _formatDate(DateTime.parse(nextAppt.date)) : 'Oct 29',
+                  nextAppt?.doctor ?? 'Dr. Smith',
+                  AppTheme.primaryColor,
+                  Iconsax.calendar,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildMetricCard(
+                  'HEALTH SCORE',
+                  '${metrics?.healthScore ?? 85}/100',
+                  'Excellent',
+                  const Color(0xFF10B981),
+                  Iconsax.heart,
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMetricCard(String title, String value, String subtitle, Color color, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: AppTheme.textSecondary,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Icon(icon, size: 16, color: color),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodaysVitals(DashboardResponse? dashboard) {
+    final vitals = dashboard?.todaysVitals.isNotEmpty == true 
+        ? dashboard!.todaysVitals.first 
+        : null;
+    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -1070,60 +495,196 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Quick Actions',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Iconsax.heart, color: Color(0xFFEF4444), size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                "Today's Vitals",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const Spacer(),
+              ElevatedButton.icon(
+                onPressed: () => _showRecordVitalsDialog(),
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Record Vitals'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366F1),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  textStyle: const TextStyle(fontSize: 12),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionCard(
-                  'Book Appointment',
-                  Iconsax.calendar_add,
-                  const Color(0xFF6366F1),
-                  () => context.go('/book-appointment'),
+          if (vitals != null) ...[
+            SafeRow(
+              children: [
+                Expanded(
+                  child: _buildVitalCard(
+                    'Weight',
+                    '${vitals.weight?.toInt() ?? 56} kg',
+                    Iconsax.weight,
+                    AppTheme.primaryColor,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionCard(
-                  'My Doctors',
-                  Iconsax.user,
-                  const Color(0xFF10B981),
-                  () => context.go('/doctors'),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildVitalCard(
+                    'Blood Pressure',
+                    '${vitals.systolicBp ?? 120}/${vitals.diastolicBp ?? 80}',
+                    Iconsax.heart,
+                    const Color(0xFFEF4444),
+                  ),
                 ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildVitalCard(
+                    'Heart Rate',
+                    '${vitals.heartRate ?? 72} bpm',
+                    Iconsax.activity,
+                    const Color(0xFFEF4444),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildVitalCard(
+                    'Blood Sugar',
+                    '${vitals.bloodSugar ?? 95} mg/dL',
+                    Iconsax.drop,
+                    const Color(0xFFF59E0B),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            Container(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6366F1).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Iconsax.heart,
+                      size: 32,
+                      color: Color(0xFF6366F1),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No vitals recorded today',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Record your vital signs to track your health progress',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVitalCard(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 16),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _buildActionCard(
-                  'Lab Results',
-                  Iconsax.document_text,
-                  const Color(0xFFF59E0B),
-                  () => context.go('/lab-results'),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildActionCard(
-                  'Pending Bills',
-                  Iconsax.wallet,
-                  const Color(0xFFEF4444),
-                  () => context.go('/payments'),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildQuickActions() {
+    return SafeRow(
+      children: [
+        Expanded(
+          child: _buildActionCard(
+            'Lab Results',
+            Iconsax.document_text,
+            const Color(0xFFF59E0B),
+            () => context.go('/lab-results'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildActionCard(
+            'Health Records',
+            Iconsax.heart,
+            const Color(0xFF10B981),
+            () => context.go('/health-records'),
+          ),
+        ),
+      ],
     );
   }
 
@@ -1136,28 +697,36 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withOpacity(0.2)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          child: Column(
+          child: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
+                  color: color.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 20),
               ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: color,
+              const SizedBox(width: 12),
+              Flexible(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -1165,5 +734,622 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
         ),
       ),
     );
+  }
+
+  Widget _buildUpcomingAppointments(DashboardResponse? dashboard) {
+    return Consumer(
+      builder: (context, ref, child) {
+        final appointmentsState = ref.watch(appointmentsProvider);
+        final appointmentDates = appointmentsState.appointments.map((a) => a.date).toList();
+        
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6366F1).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Iconsax.calendar, color: Color(0xFF6366F1), size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Upcoming Appointments',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (appointmentsState.isLoading)
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF6366F1)),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TableCalendar<dynamic>(
+                firstDay: DateTime.utc(2020, 1, 1),
+                lastDay: DateTime.utc(2030, 12, 31),
+                focusedDay: _focusedDay,
+                selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
+                onDaySelected: (selectedDay, focusedDay) {
+                  setState(() {
+                    _selectedDay = selectedDay;
+                    _focusedDay = focusedDay;
+                  });
+                  final dayAppointments = appointmentsState.appointments.where((appointment) {
+                    return appointment.date.year == selectedDay.year &&
+                           appointment.date.month == selectedDay.month &&
+                           appointment.date.day == selectedDay.day;
+                  }).toList();
+                  if (dayAppointments.isNotEmpty) {
+                    _showAppointmentPopup(context, dayAppointments.first);
+                  }
+                },
+                calendarFormat: CalendarFormat.month,
+                startingDayOfWeek: StartingDayOfWeek.sunday,
+                headerStyle: const HeaderStyle(
+                  formatButtonVisible: false,
+                  titleCentered: true,
+                  leftChevronIcon: Icon(Icons.chevron_left, color: Color(0xFF6366F1)),
+                  rightChevronIcon: Icon(Icons.chevron_right, color: Color(0xFF6366F1)),
+                ),
+                calendarBuilders: CalendarBuilders(
+                  defaultBuilder: (context, day, focusedDay) {
+                    final hasAppointment = appointmentDates.any((date) => 
+                      date.year == day.year && date.month == day.month && date.day == day.day);
+                    
+                    if (hasAppointment) {
+                      return Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1).withOpacity(0.1),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: const Color(0xFF6366F1), width: 2),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${day.day}',
+                            style: const TextStyle(
+                              color: Color(0xFF6366F1),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                    return null;
+                  },
+                ),
+                calendarStyle: const CalendarStyle(
+                  outsideDaysVisible: false,
+                  weekendTextStyle: TextStyle(color: AppTheme.textPrimary),
+                  holidayTextStyle: TextStyle(color: AppTheme.textPrimary),
+                  selectedDecoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    shape: BoxShape.circle,
+                  ),
+                  todayDecoration: BoxDecoration(
+                    color: AppTheme.accentColor,
+                    shape: BoxShape.circle,
+                  ),
+                  defaultTextStyle: TextStyle(color: AppTheme.textPrimary),
+                ),
+                daysOfWeekStyle: const DaysOfWeekStyle(
+                  weekdayStyle: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  weekendStyle: TextStyle(
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF6366F1),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${appointmentsState.appointments.length} Appointments',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAppointmentPopup(BuildContext context, Appointment appointment) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF6366F1).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.medical_services,
+                        color: Color(0xFF6366F1),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Appointment Details',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            DateFormat('MMM dd, yyyy').format(appointment.date),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.close, size: 20),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                _buildDetailRow('Doctor:', appointment.doctorName),
+                _buildDetailRow('Specialty:', appointment.doctorSpecialty ?? 'General'),
+                _buildDetailRow('Hospital:', appointment.hospitalName),
+                _buildDetailRow('Time:', appointment.appointmentTime ?? 'Not set'),
+                _buildDetailRow('Issue:', appointment.disease),
+                if (appointment.notes != null)
+                  _buildDetailRow('Notes:', appointment.notes!),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: appointment.status == 'approved' 
+                        ? Colors.green.withOpacity(0.1)
+                        : Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    appointment.status == 'approved' ? 'Confirmed' : 'Pending',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: appointment.status == 'approved' 
+                          ? Colors.green : Colors.orange,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPendingBills() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Iconsax.receipt, color: Color(0xFFF59E0B), size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Pending Bills',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(32),
+            width: double.infinity,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/no_pending_bills.png',
+                  width: 80,
+                  height: 80,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'No pending bills',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'All your bills are up to date',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppTheme.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMedications(DashboardResponse? dashboard) {
+    final medications = dashboard?.medications ?? [];
+    
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Iconsax.health, color: Color(0xFF10B981), size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Medications',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Next Medications',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (medications.isEmpty) ...[
+            Container(
+              padding: const EdgeInsets.all(32),
+              width: double.infinity,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF6B7280).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Iconsax.health,
+                      size: 32,
+                      color: Color(0xFF6B7280),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'No medications today',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            ...medications.map((med) => _buildMedicationItem(med)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMedicationItem(Medication medication) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF10B981).withOpacity(0.2),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(Iconsax.health, color: Color(0xFF10B981), size: 16),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  medication.name,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${medication.dosage} • ${medication.frequency}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!medication.wasTaken)
+            ElevatedButton(
+              onPressed: () {
+                ref.read(newDashboardProvider.notifier).takeMedication(medication.id);
+                ToastService.showSuccess('Medication marked as taken');
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF10B981),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                textStyle: const TextStyle(fontSize: 12),
+              ),
+              child: const Text('Take'),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: const Text(
+                'Taken',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF10B981),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _showRecordVitalsDialog() {
+    final weightController = TextEditingController();
+    final systolicController = TextEditingController();
+    final diastolicController = TextEditingController();
+    final heartRateController = TextEditingController();
+    final temperatureController = TextEditingController();
+    final bloodSugarController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Record Vitals'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: weightController,
+                decoration: const InputDecoration(labelText: 'Weight (kg)'),
+                keyboardType: TextInputType.number,
+              ),
+              TextField(
+                controller: systolicController,
+                decoration: const InputDecoration(labelText: 'Systolic BP'),
+                keyboardType: TextInputType.number,
+              ),
+              TextField(
+                controller: diastolicController,
+                decoration: const InputDecoration(labelText: 'Diastolic BP'),
+                keyboardType: TextInputType.number,
+              ),
+              TextField(
+                controller: heartRateController,
+                decoration: const InputDecoration(labelText: 'Heart Rate (bpm)'),
+                keyboardType: TextInputType.number,
+              ),
+              TextField(
+                controller: temperatureController,
+                decoration: const InputDecoration(labelText: 'Temperature (°C)'),
+                keyboardType: TextInputType.number,
+              ),
+              TextField(
+                controller: bloodSugarController,
+                decoration: const InputDecoration(labelText: 'Blood Sugar (mg/dL)'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (weightController.text.isNotEmpty &&
+                  systolicController.text.isNotEmpty &&
+                  diastolicController.text.isNotEmpty &&
+                  heartRateController.text.isNotEmpty &&
+                  temperatureController.text.isNotEmpty &&
+                  bloodSugarController.text.isNotEmpty) {
+                ref.read(newDashboardProvider.notifier).recordVitals(
+                  weight: double.parse(weightController.text),
+                  systolicBp: int.parse(systolicController.text),
+                  diastolicBp: int.parse(diastolicController.text),
+                  heartRate: int.parse(heartRateController.text),
+                  temperature: double.parse(temperatureController.text),
+                  bloodSugar: int.parse(bloodSugarController.text),
+                );
+                ToastService.showSuccess('Vitals recorded successfully');
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Record'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    return DateFormat('MMM dd').format(date);
   }
 }

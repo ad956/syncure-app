@@ -1,78 +1,33 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'themes/app_theme.dart';
-
-import 'screens/splash/splash_screen.dart';
-import 'screens/auth/login_screen.dart';
-import 'screens/auth/signup_screen.dart';
-import 'screens/dashboard/new_dashboard_screen.dart';
-
-import 'screens/payments/payments_screen.dart';
-import 'screens/medical_history/medical_history_screen.dart';
-import 'screens/profile/profile_screen.dart';
-import 'screens/qr/qr_screen.dart';
-import 'screens/chat/chat_screen.dart';
-import 'screens/lab_results/lab_results_screen.dart';
-import 'screens/appointment_booking/appointment_booking_screen.dart';
-import 'screens/doctors/doctors_screen.dart';
-import 'screens/health_records/health_records_screen.dart';
-import 'screens/appointments/appointments_list_screen.dart';
-import 'screens/error/page_not_found_screen.dart';
+import 'routes/app_routes.dart';
 import 'services/razorpay_service.dart';
 import 'services/novu_service.dart';
-
-final routerProvider = Provider<GoRouter>((ref) {
-  return GoRouter(
-    initialLocation: '/',
-    errorBuilder: (context, state) => const PageNotFoundScreen(),
-    routes: [
-      GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
-      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
-      GoRoute(
-          path: '/signup', builder: (context, state) => const SignupScreen()),
-      GoRoute(
-          path: '/dashboard',
-          builder: (context, state) => const NewDashboardScreen()),
-      GoRoute(
-          path: '/appointments',
-          builder: (context, state) => const AppointmentsListScreen()),
-      GoRoute(
-          path: '/book-appointment',
-          builder: (context, state) => const AppointmentBookingScreen()),
-      GoRoute(
-          path: '/payments',
-          builder: (context, state) => const PaymentsScreen()),
-      GoRoute(
-          path: '/medical-history',
-          builder: (context, state) => const MedicalHistoryScreen()),
-      GoRoute(
-          path: '/profile', builder: (context, state) => const ProfileScreen()),
-      GoRoute(path: '/qr', builder: (context, state) => const QRScreen()),
-      GoRoute(path: '/chat', builder: (context, state) => const ChatScreen()),
-      GoRoute(
-          path: '/lab-results',
-          builder: (context, state) => const LabResultsScreen()),
-      GoRoute(
-          path: '/health-records',
-          builder: (context, state) => const HealthRecordsScreen()),
-      GoRoute(
-          path: '/doctors', builder: (context, state) => const DoctorsScreen()),
-      GoRoute(
-          path: '/404',
-          builder: (context, state) => const PageNotFoundScreen()),
-    ],
-  );
-});
+import 'widgets/error_boundary.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
 
-  // Initialize services
-  RazorpayService.initialize();
-  await NovuService.initializeNovu();
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print('Warning: Could not load .env file: $e');
+  }
+
+  // Initialize services with error handling
+  try {
+    RazorpayService.initialize();
+  } catch (e) {
+    print('Warning: Razorpay initialization failed: $e');
+  }
+
+  try {
+    await NovuService.initializeNovu();
+  } catch (e) {
+    print('Warning: Novu initialization failed: $e');
+  }
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -98,12 +53,14 @@ class _MyAppState extends ConsumerState<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    final router = ref.watch(routerProvider);
-    return MaterialApp.router(
-      title: 'Syncure',
-      theme: AppTheme.lightTheme,
-      routerConfig: router,
-      debugShowCheckedModeBanner: false,
+    return ErrorBoundary(
+      fallbackMessage: 'App initialization error',
+      child: MaterialApp.router(
+        title: 'Syncure',
+        theme: AppTheme.lightTheme,
+        routerConfig: ref.watch(routerProvider),
+        debugShowCheckedModeBanner: false,
+      ),
     );
   }
 }

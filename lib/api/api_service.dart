@@ -4,7 +4,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:developer' as developer;
 
 class ApiService {
-  static String get baseUrl => dotenv.env['BASE_URL'] ?? 'http://syncure.vercel.app/api';
+  static String get baseUrl => dotenv.env['BASE_URL'] ?? 'https://syncure.vercel.app/api';
   static const _storage = FlutterSecureStorage();
   static const bool useMockData = false;
   
@@ -24,7 +24,7 @@ class ApiService {
         
         final token = await _storage.read(key: 'auth_token');
         if (token != null) {
-          options.headers['Cookie'] = 'better-auth.session_token=$token';
+          options.headers['Cookie'] = 'auth-token=$token';
           developer.log('🔐 Using auth token: ${token.length > 20 ? token.substring(0, 20) + '...' : token}');
         } else {
           developer.log('🔓 No auth token found');
@@ -53,6 +53,7 @@ class ApiService {
         if (error.response?.statusCode == 401) {
           await _storage.delete(key: 'auth_token');
           developer.log('🗑️ Cleared auth token due to 401 error');
+          // Note: Navigation will be handled by auth guard in router
         }
         handler.next(error);
       },

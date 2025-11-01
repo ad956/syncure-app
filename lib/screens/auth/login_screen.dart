@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
 import '../../themes/app_theme.dart';
+import '../../routes/app_routes.dart';
+import '../../widgets/common_widgets.dart';
+import '../../services/toast_service.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -52,14 +55,85 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Row(
-        children: [
-          // Login Form
-          Expanded(
-            child: SafeArea(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(40),
-                child: AnimatedBuilder(
+      body: ResponsiveBuilder(
+        mobile: _buildMobileLayout(),
+        tablet: _buildTabletLayout(),
+        desktop: _buildDesktopLayout(),
+      ),
+    );
+  }
+
+  Widget _buildMobileLayout() {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: _buildLoginForm(),
+      ),
+    );
+  }
+
+  Widget _buildTabletLayout() {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 400),
+        padding: const EdgeInsets.all(32),
+        child: _buildLoginForm(),
+      ),
+    );
+  }
+
+  Widget _buildDesktopLayout() {
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            color: const Color(0xFFF8FAFC),
+            child: const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.local_hospital,
+                    size: 120,
+                    color: Color(0xFF6366F1),
+                  ),
+                  SizedBox(height: 24),
+                  Text(
+                    'Welcome to Syncure',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1F2937),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Your health, synchronized',
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: Center(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 400),
+              padding: const EdgeInsets.all(40),
+              child: _buildLoginForm(),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoginForm() {
+    return AnimatedBuilder(
                   animation: _animationController,
                   builder: (context, child) {
                     return FadeTransition(
@@ -169,14 +243,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                 // Listen for auth state changes
                                 ref.listen(authProvider, (previous, next) {
                                   if (next.user != null) {
-                                    context.go('/dashboard');
+                                    ToastService.showSuccess('Login successful!');
+                                    context.go(AppRoutes.dashboard);
                                   } else if (next.error != null) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(next.error!),
-                                        backgroundColor: Colors.red,
-                                      ),
-                                    );
+                                    ToastService.showError(next.error!);
                                   }
                                 });
                                 
@@ -315,7 +385,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                                   style: TextStyle(color: AppTheme.textSecondary),
                                 ),
                                 TextButton(
-                                  onPressed: () => context.go('/signup'),
+                                  onPressed: () => context.go(AppRoutes.signup),
                                   child: const Text(
                                     'Sign Up',
                                     style: TextStyle(
@@ -331,14 +401,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       ),
                     );
                   },
-                ),
-              ),
-            ),
-          ),
-
-        ],
-      ),
-    );
+                );
   }
 
   Widget _buildTextField({

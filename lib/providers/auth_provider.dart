@@ -18,7 +18,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final ApiService _apiService;
   static const _storage = FlutterSecureStorage();
 
-  AuthNotifier(this._apiService) : super(AuthState());
+  AuthNotifier(this._apiService) : super(AuthState()) {
+    loadSession();
+  }
 
   // Step 1: Login (sends OTP to email)
   Future<void> login(String usernameOrEmail, String password) async {
@@ -113,16 +115,41 @@ class AuthNotifier extends StateNotifier<AuthState> {
       developer.log('🎭 Demo response data: ${response.data}');
       
       if (response.statusCode == 200) {
-        final demoUser = response.data['user'];
-        final email = demoUser['email'];
-        final otp = demoUser['otp'];
+        final userData = response.data['user'];
+        developer.log('🎭 Demo user data: $userData');
         
-        developer.log('🎭 Demo user email: $email');
-        developer.log('🎭 Demo user OTP: $otp');
-        developer.log('🎭 Step 2: Auto-verifying OTP for demo user');
+        // Extract token from cookie header
+        final cookies = response.headers['set-cookie'];
+        developer.log('🍪 Demo cookies: $cookies');
         
-        // Automatically verify OTP for demo user
-        await verifyOtp(email, otp);
+        if (cookies != null && cookies.isNotEmpty) {
+          final cookieString = cookies.first;
+          final tokenMatch = RegExp(r'auth-token=([^;]+)').firstMatch(cookieString) ?? 
+                              RegExp(r'better-auth\.session_token=([^;]+)').firstMatch(cookieString);
+          final token = tokenMatch?.group(1);
+          
+          developer.log('🔐 Demo token extracted: ${token?.substring(0, 20)}...');
+          
+          if (token != null) {
+            await _storage.write(key: 'auth_token', value: token);
+            developer.log('🔐 Demo token saved successfully');
+            
+            try {
+              final user = User.fromJson(userData);
+              state = AuthState(user: user);
+              developer.log('✅ Demo authentication completed successfully');
+            } catch (userParseError) {
+              developer.log('❌ Demo user parsing error: $userParseError');
+              state = AuthState(error: 'Failed to parse demo user data');
+            }
+          } else {
+            developer.log('❌ No demo token found in cookie');
+            state = AuthState(error: 'No demo token received');
+          }
+        } else {
+          developer.log('❌ No demo cookies received');
+          state = AuthState(error: 'No demo authentication cookie received');
+        }
       } else {
         developer.log('❌ Demo login failed with status: ${response.statusCode}');
         state = AuthState(error: 'Demo login failed: ${response.statusCode}');
@@ -171,25 +198,45 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = AuthState();
   }
 
+  void handleUnauthorized() {
+    developer.log('🚫 Handling unauthorized access');
+    logout();
+  }
+
   // Load saved session
   Future<void> loadSession() async {
     try {
       final token = await _storage.read(key: 'auth_token');
       if (token != null) {
         developer.log('🔐 Found saved token, attempting to load profile');
-        final profileResponse = await _apiService.getProfile();
-        if (profileResponse.statusCode == 200) {
-          final user = User.fromJson(profileResponse.data);
-          state = AuthState(user: user);
-          developer.log('✅ Session restored successfully');
-        } else {
+        try {
+          final profileResponse = await _apiService.getProfile();
+          if (profileResponse.statusCode == 200) {
+            final user = User.fromJson(profileResponse.data);
+            state = AuthState(user: user);
+            developer.log('✅ Session restored successfully');
+          } else {
+            await _storage.delete(key: 'auth_token');
+            developer.log('🗑️ Invalid token, cleared storage');
+            state = AuthState();
+          }
+        } catch (apiError) {
+          developer.log('❌ API error during session load: $apiError');
           await _storage.delete(key: 'auth_token');
-          developer.log('🗑️ Invalid token, cleared storage');
+          state = AuthState();
         }
+      } else {
+        developer.log('🔓 No saved token found');
+        state = AuthState();
       }
     } catch (e) {
       developer.log('❌ Session load error: $e');
-      await _storage.delete(key: 'auth_token');
+      try {
+        await _storage.delete(key: 'auth_token');
+      } catch (storageError) {
+        developer.log('❌ Storage clear error: $storageError');
+      }
+      state = AuthState();
     }
   }
 }
