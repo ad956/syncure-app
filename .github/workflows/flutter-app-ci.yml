@@ -66,20 +66,30 @@ jobs:
       - name: Send success notification to Telegram
         if: success() && github.ref == 'refs/heads/main'
         run: |
-          APK_PATH="${{ steps.apk-path.outputs.path }}"
           COMMIT_MSG=$(git log -1 --pretty=format:"%s")
           COMMIT_HASH=$(git rev-parse --short HEAD)
+          APK_SIZE=$(du -h "${{ steps.apk-path.outputs.path }}" | cut -f1)
 
-          curl -F "chat_id=${{ secrets.TELEGRAM_CHAT_ID }}" \
-               -F "document=@$APK_PATH" \
-               -F "caption=Syncure Flutter Build Success
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+               -H "Content-Type: application/json" \
+               -d "{
+                 \"chat_id\": \"${{ secrets.TELEGRAM_CHAT_ID }}\",
+                 \"text\": \"✅ Syncure Flutter Build Success\n\n📱 Commit: $COMMIT_MSG\n🔗 Hash: $COMMIT_HASH\n📦 Size: $APK_SIZE\n📅 Built: $(date)\n\nAPK available in GitHub Actions artifacts!\"
+               }"
 
-          📱 Commit: $COMMIT_MSG
-          🔗 Hash: $COMMIT_HASH
-          📅 Built: $(date)
+      - name: Send release notification to Telegram
+        if: success() && startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          APK_SIZE=$(du -h "${{ steps.apk-path.outputs.path }}" | cut -f1)
+          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/$TAG_NAME/${{ steps.apk-path.outputs.filename }}"
 
-          Download and install to test!" \
-               "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendDocument"
+          curl -X POST "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMessage" \
+               -H "Content-Type: application/json" \
+               -d "{
+                 \"chat_id\": \"${{ secrets.TELEGRAM_CHAT_ID }}\",
+                 \"text\": \"🎉 Syncure Release $TAG_NAME\n\n📦 Size: $APK_SIZE\n📅 Released: $(date)\n\n🔗 Direct Download:\n$DOWNLOAD_URL\"
+               }"
 
       - name: Send failure notification to Telegram
         if: failure() && github.ref == 'refs/heads/main'
