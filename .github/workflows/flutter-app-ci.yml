@@ -28,6 +28,13 @@ jobs:
           channel: "stable"
           cache: true
 
+      - name: Create .env file
+        run: |
+          echo "BASE_URL=${{ secrets.BASE_URL }}" > .env
+          echo "RAZORPAY_KEY_ID=${{ secrets.RAZORPAY_KEY_ID }}" >> .env
+          echo "NOVU_API_KEY=${{ secrets.NOVU_API_KEY }}" >> .env
+          echo "NOVU_APP_IDENTIFIER=${{ secrets.NOVU_APP_IDENTIFIER }}" >> .env
+
       - name: Get dependencies
         run: |
           flutter doctor -v
