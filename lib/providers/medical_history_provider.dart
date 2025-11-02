@@ -23,13 +23,14 @@ class MedicalRecord {
 
   factory MedicalRecord.fromJson(Map<String, dynamic> json) {
     return MedicalRecord(
-      id: json['id'] ?? '',
-      hospitalName: json['hospitalName'] ?? '',
-      doctorName: json['doctorName'] ?? '',
-      startDate: DateTime.parse(json['startDate'] ?? DateTime.now().toIso8601String()),
-      endDate: json['endDate'] != null ? DateTime.parse(json['endDate']) : null,
+      id: json['_id'] ?? json['id'] ?? '',
+      hospitalName: json['hospital']?['name'] ?? json['hospitalName'] ?? '',
+      doctorName: json['doctor']?['name'] ?? json['doctorName'] ?? '',
+      startDate: DateTime.parse(json['start_date'] ?? json['startDate'] ?? DateTime.now().toIso8601String()),
+      endDate: json['end_date'] != null ? DateTime.parse(json['end_date']) : 
+               (json['endDate'] != null ? DateTime.parse(json['endDate']) : null),
       disease: json['disease'] ?? '',
-      treatmentStatus: json['treatmentStatus'] ?? '',
+      treatmentStatus: json['TreatmentStatus'] ?? json['treatmentStatus'] ?? '',
     );
   }
 }
@@ -43,9 +44,14 @@ class MedicalHistoryNotifier extends StateNotifier<List<MedicalRecord>> {
     try {
       final response = await _apiService.getMedicalHistory();
       if (response.statusCode == 200) {
-        final records = (response.data as List)
-            .map((json) => MedicalRecord.fromJson(json))
-            .toList();
+        final data = response.data;
+        List<MedicalRecord> records = [];
+        
+        if (data['success'] == true && data['data'] != null) {
+          final historyData = data['data'] as List;
+          records = historyData.map((json) => MedicalRecord.fromJson(json)).toList();
+        }
+        
         state = records;
       }
     } catch (e) {

@@ -1,17 +1,26 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'dart:io';
 import '../api/api_service.dart';
 import '../models/chat.dart';
+import 'auth_provider.dart';
 
 class ChatState {
   final List<ChatRoom> chatRooms;
   final List<ChatMessage> messages;
   final bool isLoading;
+  final bool isLoadingMessages;
+  final bool isSendingImage;
   final String? error;
 
   ChatState({
     this.chatRooms = const [],
     this.messages = const [],
     this.isLoading = false,
+    this.isLoadingMessages = false,
+    this.isSendingImage = false,
     this.error,
   });
 
@@ -19,12 +28,16 @@ class ChatState {
     List<ChatRoom>? chatRooms,
     List<ChatMessage>? messages,
     bool? isLoading,
+    bool? isLoadingMessages,
+    bool? isSendingImage,
     String? error,
   }) {
     return ChatState(
       chatRooms: chatRooms ?? this.chatRooms,
       messages: messages ?? this.messages,
       isLoading: isLoading ?? this.isLoading,
+      isLoadingMessages: isLoadingMessages ?? this.isLoadingMessages,
+      isSendingImage: isSendingImage ?? this.isSendingImage,
       error: error ?? this.error,
     );
   }
@@ -40,136 +53,130 @@ class ChatNotifier extends StateNotifier<ChatState> {
     
     try {
       final response = await _apiService.getChatRooms();
-      final List<dynamic> data = response.data['rooms'] ?? [];
-      final rooms = data.map((json) => ChatRoom.fromJson(json)).toList();
-      state = state.copyWith(chatRooms: rooms, isLoading: false);
+      
+      if (response.statusCode == 200) {
+        final rooms = (response.data['data']['rooms'] as List? ?? [])
+            .map((room) => _mapApiRoomToChatRoom(room))
+            .toList();
+        
+        state = state.copyWith(chatRooms: rooms, isLoading: false);
+      } else {
+        state = state.copyWith(
+          chatRooms: [],
+          isLoading: false,
+          error: 'Failed to load chat rooms'
+        );
+      }
     } catch (e) {
-      // Use mock data if API fails
-      final mockRooms = [
-        ChatRoom(
-          id: '1',
-          doctorId: 'doc1',
-          doctorName: 'Dr. Sarah Johnson',
-          doctorSpecialty: 'Cardiologist',
-          doctorPhoto: null,
-          lastMessage: 'How are you feeling today?',
-          lastMessageTime: DateTime.now().subtract(const Duration(minutes: 30)).toIso8601String(),
-          unreadCount: 2,
-          isOnline: true,
-        ),
-        ChatRoom(
-          id: '2',
-          doctorId: 'doc2',
-          doctorName: 'Dr. Michael Chen',
-          doctorSpecialty: 'General Medicine',
-          doctorPhoto: null,
-          lastMessage: 'Your test results look good',
-          lastMessageTime: DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
-          unreadCount: 0,
-          isOnline: false,
-        ),
-        ChatRoom(
-          id: '3',
-          doctorId: 'doc3',
-          doctorName: 'Dr. Emily Davis',
-          doctorSpecialty: 'Dermatologist',
-          doctorPhoto: null,
-          lastMessage: 'Please follow the prescribed treatment',
-          lastMessageTime: DateTime.now().subtract(const Duration(days: 1)).toIso8601String(),
-          unreadCount: 1,
-          isOnline: true,
-        ),
-      ];
-      state = state.copyWith(chatRooms: mockRooms, isLoading: false);
+      state = state.copyWith(
+        chatRooms: [],
+        isLoading: false,
+        error: 'Error loading chat rooms: ${e.toString()}'
+      );
     }
   }
 
+  ChatRoom _mapApiRoomToChatRoom(Map<String, dynamic> room) {
+    final participants = room['participants'] as List? ?? [];
+    final doctorParticipant = participants.firstWhere(
+      (p) => p['role'] == 'Doctor',
+      orElse: () => null,
+    );
+    
+    final doctor = doctorParticipant?['userId'] ?? {};
+    final lastMessage = room['lastMessage'] ?? {};
+    
+    return ChatRoom(
+      id: room['_id'] ?? '',
+      doctorId: doctor['_id'] ?? '',
+      doctorName: 'Dr. ${doctor['firstname'] ?? ''} ${doctor['lastname'] ?? ''}',
+      doctorSpecialty: doctor['specialty'] ?? 'General Medicine',
+      doctorPhoto: doctor['profile'],
+      lastMessage: lastMessage['message'] ?? 'Start a conversation',
+      lastMessageTime: lastMessage['createdAt'] ?? DateTime.now().toIso8601String(),
+      unreadCount: 0,
+      isOnline: true,
+    );
+  }
+
+
+
   Future<void> loadMessages(String roomId) async {
+    state = state.copyWith(isLoadingMessages: true);
+    
     try {
       final response = await _apiService.getChatMessages(roomId);
-      final List<dynamic> data = response.data['messages'] ?? [];
-      final messages = data.map((json) => ChatMessage.fromJson(json)).toList();
-      state = state.copyWith(messages: messages);
       
-      // Mark messages as read
-      await _apiService.markMessagesAsRead(roomId);
-      
-      // Update unread count for the room
-      final updatedRooms = state.chatRooms.map((room) {
-        if (room.id == roomId) {
-          return ChatRoom(
-            id: room.id,
-            doctorId: room.doctorId,
-            doctorName: room.doctorName,
-            doctorSpecialty: room.doctorSpecialty,
-            doctorPhoto: room.doctorPhoto,
-            lastMessage: room.lastMessage,
-            lastMessageTime: room.lastMessageTime,
-            unreadCount: 0,
-            isOnline: room.isOnline,
-          );
-        }
-        return room;
-      }).toList();
-      
-      state = state.copyWith(chatRooms: updatedRooms);
+      if (response.statusCode == 200) {
+        final messages = (response.data['data']['messages'] as List? ?? [])
+            .map((json) => _mapApiMessageToChatMessage(json))
+            .toList();
+        state = state.copyWith(
+          messages: messages,
+          isLoadingMessages: false,
+        );
+        
+        // Mark messages as read
+        await _apiService.markMessagesAsRead(roomId);
+        
+        // Update unread count for the room
+        _updateRoomUnreadCount(roomId, 0);
+      } else {
+        state = state.copyWith(
+          messages: [],
+          isLoadingMessages: false,
+          error: 'Failed to load messages'
+        );
+      }
     } catch (e) {
-      // Use mock messages if API fails
-      final mockMessages = [
-        ChatMessage(
-          id: '1',
-          roomId: roomId,
-          senderId: 'doc1',
-          senderName: 'Dr. Sarah Johnson',
-          message: 'Hello! How can I help you today?',
-          timestamp: DateTime.now().subtract(const Duration(hours: 1)).toIso8601String(),
-          status: 'read',
-          isFromPatient: false,
-        ),
-        ChatMessage(
-          id: '2',
-          roomId: roomId,
-          senderId: 'patient1',
-          senderName: 'Patient',
-          message: 'I have been experiencing some chest pain lately.',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 45)).toIso8601String(),
-          status: 'read',
-          isFromPatient: true,
-        ),
-        ChatMessage(
-          id: '3',
-          roomId: roomId,
-          senderId: 'doc1',
-          senderName: 'Dr. Sarah Johnson',
-          message: 'Can you describe the pain? Is it sharp or dull? When does it occur?',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 40)).toIso8601String(),
-          status: 'read',
-          isFromPatient: false,
-        ),
-        ChatMessage(
-          id: '4',
-          roomId: roomId,
-          senderId: 'patient1',
-          senderName: 'Patient',
-          message: 'It\'s a dull pain that occurs mostly when I exercise or climb stairs.',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 35)).toIso8601String(),
-          status: 'read',
-          isFromPatient: true,
-        ),
-        ChatMessage(
-          id: '5',
-          roomId: roomId,
-          senderId: 'doc1',
-          senderName: 'Dr. Sarah Johnson',
-          message: 'I recommend you come in for an ECG and stress test. This could be related to your heart condition.',
-          timestamp: DateTime.now().subtract(const Duration(minutes: 30)).toIso8601String(),
-          status: 'delivered',
-          isFromPatient: false,
-        ),
-      ];
-      state = state.copyWith(messages: mockMessages);
+      state = state.copyWith(
+        messages: [],
+        isLoadingMessages: false,
+        error: 'Error loading messages: ${e.toString()}'
+      );
     }
   }
+
+  ChatMessage _mapApiMessageToChatMessage(Map<String, dynamic> json) {
+    final sender = json['senderId'] ?? {};
+    final senderRole = json['senderRole'] ?? '';
+    
+    return ChatMessage(
+      id: json['_id'] ?? '',
+      roomId: json['roomId'] ?? '',
+      senderId: sender['_id'] ?? '',
+      senderName: senderRole == 'Patient' ? 'You' : 'Dr. ${sender['firstname'] ?? ''} ${sender['lastname'] ?? ''}',
+      message: json['message'] ?? '',
+      timestamp: json['createdAt'] ?? DateTime.now().toIso8601String(),
+      status: 'sent',
+      attachmentUrl: json['imageUrl'],
+      attachmentType: json['messageType'] == 'image' ? 'image' : null,
+      isFromPatient: senderRole == 'Patient',
+    );
+  }
+
+  void _updateRoomUnreadCount(String roomId, int count) {
+    final updatedRooms = state.chatRooms.map((room) {
+      if (room.id == roomId) {
+        return ChatRoom(
+          id: room.id,
+          doctorId: room.doctorId,
+          doctorName: room.doctorName,
+          doctorSpecialty: room.doctorSpecialty,
+          doctorPhoto: room.doctorPhoto,
+          lastMessage: room.lastMessage,
+          lastMessageTime: room.lastMessageTime,
+          unreadCount: count,
+          isOnline: room.isOnline,
+        );
+      }
+      return room;
+    }).toList();
+    
+    state = state.copyWith(chatRooms: updatedRooms);
+  }
+
+
 
   Future<void> sendMessage(String roomId, String message) async {
     // Add message optimistically to UI
@@ -188,69 +195,66 @@ class ChatNotifier extends StateNotifier<ChatState> {
     state = state.copyWith(messages: updatedMessages);
 
     try {
-      await _apiService.sendMessage({
+      final response = await _apiService.sendMessage({
         'roomId': roomId,
         'message': message,
+        'messageType': 'text',
       });
 
-      // Update message status to sent
-      final sentMessages = state.messages.map((msg) {
-        if (msg.id == newMessage.id) {
-          return ChatMessage(
-            id: msg.id,
-            roomId: msg.roomId,
-            senderId: msg.senderId,
-            senderName: msg.senderName,
-            message: msg.message,
-            timestamp: msg.timestamp,
-            status: 'sent',
-            isFromPatient: msg.isFromPatient,
-          );
-        }
-        return msg;
-      }).toList();
-
-      state = state.copyWith(messages: sentMessages);
-
-      // Update last message in chat room
-      final updatedRooms = state.chatRooms.map((room) {
-        if (room.id == roomId) {
-          return ChatRoom(
-            id: room.id,
-            doctorId: room.doctorId,
-            doctorName: room.doctorName,
-            doctorSpecialty: room.doctorSpecialty,
-            doctorPhoto: room.doctorPhoto,
-            lastMessage: message,
-            lastMessageTime: DateTime.now().toIso8601String(),
-            unreadCount: room.unreadCount,
-            isOnline: room.isOnline,
-          );
-        }
-        return room;
-      }).toList();
-
-      state = state.copyWith(chatRooms: updatedRooms);
+      if (response.statusCode == 200) {
+        // Update message status to sent
+        _updateMessageStatus(newMessage.id, 'sent');
+        
+        // Update last message in chat room
+        _updateRoomLastMessage(roomId, message);
+      } else {
+        _updateMessageStatus(newMessage.id, 'failed');
+      }
     } catch (e) {
-      // Update message status to failed
-      final failedMessages = state.messages.map((msg) {
-        if (msg.id == newMessage.id) {
-          return ChatMessage(
-            id: msg.id,
-            roomId: msg.roomId,
-            senderId: msg.senderId,
-            senderName: msg.senderName,
-            message: msg.message,
-            timestamp: msg.timestamp,
-            status: 'failed',
-            isFromPatient: msg.isFromPatient,
-          );
-        }
-        return msg;
-      }).toList();
-
-      state = state.copyWith(messages: failedMessages, error: 'Failed to send message');
+      _updateMessageStatus(newMessage.id, 'failed');
+      state = state.copyWith(error: 'Failed to send message');
     }
+  }
+
+  void _updateMessageStatus(String messageId, String status) {
+    final updatedMessages = state.messages.map((msg) {
+      if (msg.id == messageId) {
+        return ChatMessage(
+          id: msg.id,
+          roomId: msg.roomId,
+          senderId: msg.senderId,
+          senderName: msg.senderName,
+          message: msg.message,
+          timestamp: msg.timestamp,
+          status: status,
+          isFromPatient: msg.isFromPatient,
+        );
+      }
+      return msg;
+    }).toList();
+
+    state = state.copyWith(messages: updatedMessages);
+  }
+
+  void _updateRoomLastMessage(String roomId, String message) {
+    final updatedRooms = state.chatRooms.map((room) {
+      if (room.id == roomId) {
+        return ChatRoom(
+          id: room.id,
+          doctorId: room.doctorId,
+          doctorName: room.doctorName,
+          doctorSpecialty: room.doctorSpecialty,
+          doctorPhoto: room.doctorPhoto,
+          lastMessage: message,
+          lastMessageTime: DateTime.now().toIso8601String(),
+          unreadCount: room.unreadCount,
+          isOnline: room.isOnline,
+        );
+      }
+      return room;
+    }).toList();
+
+    state = state.copyWith(chatRooms: updatedRooms);
   }
 
   Future<void> createChatRoom(String doctorId) async {
@@ -272,6 +276,89 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
   void clearMessages() {
     state = state.copyWith(messages: []);
+  }
+
+  Future<void> sendImageMessage(String roomId) async {
+    state = state.copyWith(isSendingImage: true);
+    
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(source: ImageSource.gallery);
+      
+      if (image == null) {
+        state = state.copyWith(isSendingImage: false);
+        return;
+      }
+      
+      // Upload to Cloudinary
+      final imageUrl = await _uploadImageToCloudinary(File(image.path));
+      
+      if (imageUrl != null) {
+        // Send message with image
+        final response = await _apiService.sendMessage({
+          'roomId': roomId,
+          'message': '',
+          'messageType': 'image',
+          'imageUrl': imageUrl,
+        });
+        
+        if (response.statusCode == 200) {
+          // Reload messages to show the new image
+          await loadMessages(roomId);
+        }
+      }
+    } catch (e) {
+      state = state.copyWith(
+        error: 'Failed to send image: ${e.toString()}',
+      );
+    } finally {
+      state = state.copyWith(isSendingImage: false);
+    }
+  }
+
+  Future<String?> _uploadImageToCloudinary(File imageFile) async {
+    try {
+      // Step 1: Get signature from backend
+      final timestamp = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      final publicId = 'chat_image_${timestamp}';
+      
+      final signResponse = await _apiService.uploadImage({
+        'paramsToSign': {
+          'timestamp': timestamp.toString(),
+          'folder': 'syncure',
+          'public_id': publicId,
+        }
+      });
+      
+      if (signResponse.statusCode != 200) return null;
+      
+      final signature = signResponse.data['signature'];
+      final apiKey = dotenv.env['CLOUDINARY_API_KEY']!;
+      
+      // Step 2: Upload to Cloudinary using multipart
+      final formData = FormData.fromMap({
+        'file': await MultipartFile.fromFile(imageFile.path),
+        'timestamp': timestamp.toString(),
+        'folder': 'syncure',
+        'public_id': publicId,
+        'api_key': apiKey,
+        'signature': signature,
+      });
+      
+      final cloudName = dotenv.env['CLOUDINARY_CLOUD_NAME']!;
+      final uploadResponse = await Dio().post(
+        'https://api.cloudinary.com/v1_1/$cloudName/image/upload',
+        data: formData,
+      );
+      
+      if (uploadResponse.statusCode == 200) {
+        return uploadResponse.data['secure_url'];
+      }
+      
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 }
 

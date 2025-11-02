@@ -38,6 +38,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatProvider);
     
+    // Show error toast if there's an error
+    if (chatState.error != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(chatState.error!),
+            backgroundColor: Colors.red,
+          ),
+        );
+        ref.read(chatProvider.notifier).clearError();
+      });
+    }
+    
     return MobileLayout(
       currentRoute: '/chat',
       child: Scaffold(
@@ -69,50 +82,17 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       return _buildEmptyState();
     }
 
-    return Column(
-      children: [
-        _buildAvailableDoctorsHeader(),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: chatState.chatRooms.length,
-            itemBuilder: (context, index) {
-              final room = chatState.chatRooms[index];
-              return _buildChatRoomItem(room);
-            },
-          ),
-        ),
-      ],
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: chatState.chatRooms.length,
+      itemBuilder: (context, index) {
+        final room = chatState.chatRooms[index];
+        return _buildChatRoomItem(room);
+      },
     );
   }
 
-  Widget _buildAvailableDoctorsHeader() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      color: Colors.white,
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF10B981).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Iconsax.message, color: Color(0xFF10B981), size: 20),
-          ),
-          const SizedBox(width: 12),
-          const Text(
-            'Available Doctors',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildChatRoomItem(ChatRoom room) {
     return Container(
@@ -273,17 +253,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       children: [
         _buildChatHeader(room),
         Expanded(
-          child: messages.isEmpty
-              ? _buildEmptyChatState()
-              : ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(16),
-                  itemCount: messages.length,
-                  itemBuilder: (context, index) {
-                    final message = messages[index];
-                    return _buildMessageBubble(message);
-                  },
-                ),
+          child: chatState.isLoadingMessages
+              ? const Center(child: CircularProgressIndicator())
+              : messages.isEmpty
+                  ? _buildEmptyChatState()
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.all(16),
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
+                        final message = messages[index];
+                        return _buildMessageBubble(message);
+                      },
+                    ),
         ),
         _buildMessageInput(),
       ],
@@ -396,13 +378,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    message.message,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: isFromPatient ? Colors.white : AppTheme.textPrimary,
+                  if (message.attachmentUrl != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        message.attachmentUrl!,
+                        width: 200,
+                        height: 150,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 200,
+                            height: 150,
+                            color: Colors.grey.shade300,
+                            child: const Icon(Icons.broken_image),
+                          );
+                        },
+                      ),
                     ),
-                  ),
+                    if (message.message.isNotEmpty) const SizedBox(height: 8),
+                  ],
+                  if (message.message.isNotEmpty)
+                    Text(
+                      message.message,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: isFromPatient ? Colors.white : AppTheme.textPrimary,
+                      ),
+                    ),
                   const SizedBox(height: 4),
                   Text(
                     _formatMessageTime(message.timestamp),
@@ -428,11 +431,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Widget _buildMessageInput() {
+    final chatState = ref.watch(chatProvider);
+    
     return Container(
       padding: const EdgeInsets.all(16),
       color: Colors.white,
       child: Row(
         children: [
+          IconButton(
+            icon: chatState.isSendingImage
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.image, color: Color(0xFF6366F1)),
+            onPressed: chatState.isSendingImage ? null : _sendImage,
+          ),
           Expanded(
             child: TextField(
               controller: _messageController,
@@ -495,6 +510,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } catch (e) {
       return '';
     }
+  }
+
+  void _sendImage() {
+    if (selectedRoomId == null) return;
+    ref.read(chatProvider.notifier).sendImageMessage(selectedRoomId!);
   }
 
   String _formatMessageTime(String timestamp) {

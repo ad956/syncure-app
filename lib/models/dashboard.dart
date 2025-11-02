@@ -5,6 +5,7 @@ class DashboardResponse {
   final List<VitalSign> todaysVitals;
   final List<VitalSign> recentVitals;
   final List<Medication> medications;
+  final List<PendingBill> pendingBills;
   final Progress progress;
 
   DashboardResponse({
@@ -14,26 +15,31 @@ class DashboardResponse {
     required this.todaysVitals,
     required this.recentVitals,
     required this.medications,
+    required this.pendingBills,
     required this.progress,
   });
 
   factory DashboardResponse.fromJson(Map<String, dynamic> json) {
+    final data = json['data'] ?? json;
     return DashboardResponse(
-      patient: Patient.fromJson(json['patient'] ?? {}),
-      healthMetrics: HealthMetrics.fromJson(json['healthMetrics'] ?? {}),
-      nextAppointment: json['nextAppointment'] != null 
-          ? NextAppointment.fromJson(json['nextAppointment']) 
+      patient: Patient.fromJson(data['patient'] ?? {}),
+      healthMetrics: HealthMetrics.fromJson(data['healthMetrics'] ?? {}),
+      nextAppointment: data['nextAppointment'] != null 
+          ? NextAppointment.fromJson(data['nextAppointment']) 
           : null,
-      todaysVitals: (json['todaysVitals'] as List?)
+      todaysVitals: (data['todaysVitals'] as List?)
           ?.map((v) => VitalSign.fromJson(v))
           .toList() ?? [],
-      recentVitals: (json['recentVitals'] as List?)
+      recentVitals: (data['recentVitals'] as List?)
           ?.map((v) => VitalSign.fromJson(v))
           .toList() ?? [],
-      medications: (json['medications'] as List?)
+      medications: (data['medications'] as List?)
           ?.map((m) => Medication.fromJson(m))
           .toList() ?? [],
-      progress: Progress.fromJson(json['progress'] ?? {}),
+      pendingBills: (data['pendingBills'] as List?)
+          ?.map((b) => PendingBill.fromJson(b))
+          .toList() ?? [],
+      progress: Progress.fromJson(data['progress'] ?? {}),
     );
   }
 }
@@ -47,6 +53,7 @@ class Patient {
   final String? profile;
   final PhysicalDetails? physicalDetails;
   final String updatedAt;
+  final String? countryCode;
 
   Patient({
     required this.id,
@@ -57,6 +64,7 @@ class Patient {
     this.profile,
     this.physicalDetails,
     required this.updatedAt,
+    this.countryCode,
   });
 
   factory Patient.fromJson(Map<String, dynamic> json) {
@@ -71,20 +79,30 @@ class Patient {
           ? PhysicalDetails.fromJson(json['physicalDetails']) 
           : null,
       updatedAt: json['updatedAt'] ?? DateTime.now().toIso8601String(),
+      countryCode: json['countryCode'],
     );
   }
 }
 
 class PhysicalDetails {
+  final int age;
+  final String blood;
   final double height;
   final double weight;
 
-  PhysicalDetails({required this.height, required this.weight});
+  PhysicalDetails({
+    required this.age,
+    required this.blood,
+    required this.height,
+    required this.weight,
+  });
 
   factory PhysicalDetails.fromJson(Map<String, dynamic> json) {
     return PhysicalDetails(
-      height: (json['height'] ?? 175).toDouble(),
-      weight: (json['weight'] ?? 70).toDouble(),
+      age: json['age'] ?? 21,
+      blood: json['blood'] ?? 'O+',
+      height: (json['height'] ?? 5.6).toDouble(),
+      weight: (json['weight'] ?? 60).toDouble(),
     );
   }
 }
@@ -128,9 +146,15 @@ class NextAppointment {
   factory NextAppointment.fromJson(Map<String, dynamic> json) {
     return NextAppointment(
       date: json['date'] ?? DateTime.now().add(Duration(days: 7)).toIso8601String(),
-      doctor: json['doctor'] ?? 'Dr. Smith',
-      hospital: json['hospital'] ?? 'General Hospital',
-      specialty: json['specialty'] ?? 'General Medicine',
+      doctor: json['doctor'] is Map 
+          ? json['doctor']['name'] ?? 'Dr. Smith'
+          : json['doctor'] ?? 'Dr. Smith',
+      hospital: json['hospital'] is Map 
+          ? json['hospital']['name'] ?? 'General Hospital'
+          : json['hospital'] ?? 'General Hospital',
+      specialty: json['doctor'] is Map 
+          ? json['doctor']['specialty'] ?? 'General Medicine'
+          : json['specialty'] ?? 'General Medicine',
     );
   }
 }
@@ -198,6 +222,35 @@ class Medication {
       instructions: json['instructions'] ?? '',
       nextDose: json['nextDose'] ?? '8:00 AM',
       wasTaken: json['wasTaken'] ?? false,
+    );
+  }
+}
+
+class PendingBill {
+  final String id;
+  final String hospitalName;
+  final String? hospitalProfile;
+  final double amount;
+  final String description;
+  final DateTime dueDate;
+
+  PendingBill({
+    required this.id,
+    required this.hospitalName,
+    this.hospitalProfile,
+    required this.amount,
+    required this.description,
+    required this.dueDate,
+  });
+
+  factory PendingBill.fromJson(Map<String, dynamic> json) {
+    return PendingBill(
+      id: json['id'] ?? '',
+      hospitalName: json['hospitalName'] ?? '',
+      hospitalProfile: json['hospitalProfile'],
+      amount: (json['amount'] ?? 0).toDouble(),
+      description: json['description'] ?? '',
+      dueDate: DateTime.parse(json['dueDate'] ?? DateTime.now().toIso8601String()),
     );
   }
 }

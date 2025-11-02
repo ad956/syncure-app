@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
 
-import '../../widgets/mobile_layout.dart';
+import '../../widgets/responsive_layout.dart';
 import '../../services/razorpay_service.dart';
 import '../../models/booking_data.dart';
 import '../../providers/booking_provider.dart';
@@ -35,7 +35,7 @@ class _AppointmentBookingScreenState extends ConsumerState<AppointmentBookingScr
 
   @override
   Widget build(BuildContext context) {
-    return MobileLayout(
+    return ResponsiveLayout(
       currentRoute: '/appointments',
       child: Container(
         color: const Color(0xFFF8FAFC),

@@ -34,6 +34,10 @@ jobs:
           echo "RAZORPAY_KEY_ID=${{ secrets.RAZORPAY_KEY_ID }}" >> .env
           echo "NOVU_API_KEY=${{ secrets.NOVU_API_KEY }}" >> .env
           echo "NOVU_APP_IDENTIFIER=${{ secrets.NOVU_APP_IDENTIFIER }}" >> .env
+          echo "CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}" >> .env
+          echo "CLOUDINARY_API_KEY=${{ secrets.CLOUDINARY_API_KEY }}" >> .env
+          echo "PUSHER_KEY=${{ secrets.PUSHER_KEY }}" >> .env
+          echo "PUSHER_CLUSTER=${{ secrets.PUSHER_CLUSTER }}" >> .env
 
       - name: Get dependencies
         run: |

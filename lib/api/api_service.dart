@@ -302,7 +302,10 @@ class ApiService {
 
   // Chat APIs
   Future<Response> getChatRooms() {
-    return _dio.get('/chat/rooms');
+    return _dio.get('/chat/rooms', queryParameters: {
+      'page': 1,
+      'limit': 20,
+    });
   }
 
   Future<Response> createChatRoom(Map<String, dynamic> data) {
@@ -310,7 +313,11 @@ class ApiService {
   }
 
   Future<Response> getChatMessages(String roomId) {
-    return _dio.get('/chat/messages', queryParameters: {'roomId': roomId});
+    return _dio.get('/chat/messages', queryParameters: {
+      'roomId': roomId,
+      'page': 1,
+      'limit': 20,
+    });
   }
 
   Future<Response> sendMessage(Map<String, dynamic> data) {
@@ -340,19 +347,23 @@ class ApiService {
 
   // Profile Update APIs
   Future<Response> updatePersonalInfo(Map<String, dynamic> data) {
-    return _dio.post('/update-profile/personal', data: data);
+    developer.log('👤 Updating personal info: $data');
+    return _dio.put('/update-profile/personal', data: data);
   }
 
   Future<Response> updateAddress(Map<String, dynamic> data) {
-    return _dio.post('/update-profile/address', data: data);
+    developer.log('🏠 Updating address info: $data');
+    return _dio.put('/update-profile/address', data: data);
   }
 
-  Future<Response> updateProfilePicture(Map<String, dynamic> data) {
-    return _dio.post('/update-profile/picture', data: data);
+  Future<Response> updateProfilePicture(String imageUrl) {
+    developer.log('🖼️ Updating profile picture: $imageUrl');
+    return _dio.put('/update-profile/picture', data: {'profile_picture': imageUrl});
   }
 
   Future<Response> resetPassword(Map<String, dynamic> data) {
-    return _dio.post('/update-profile/reset-password', data: data);
+    developer.log('🔐 Resetting password');
+    return _dio.put('/update-profile/reset-password', data: data);
   }
 
   // Utility APIs

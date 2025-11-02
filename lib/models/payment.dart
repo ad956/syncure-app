@@ -19,13 +19,13 @@ class Payment {
 
   factory Payment.fromJson(Map<String, dynamic> json) {
     return Payment(
-      id: json['id'],
-      hospitalName: json['hospitalName'],
-      date: DateTime.parse(json['date']),
-      amount: json['amount'].toDouble(),
-      disease: json['disease'],
-      description: json['description'],
-      status: json['status'],
+      id: json['txnDocumentId'] ?? json['id'] ?? '',
+      hospitalName: json['hospital']?['name'] ?? json['hospitalName'] ?? '',
+      date: DateTime.parse(json['date'] ?? DateTime.now().toIso8601String()),
+      amount: (json['amount'] ?? 0).toDouble(),
+      disease: json['disease'] ?? '',
+      description: json['description'] ?? '',
+      status: json['status'] ?? 'Unknown',
     );
   }
 }

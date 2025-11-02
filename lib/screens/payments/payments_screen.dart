@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../themes/app_theme.dart';
-import '../../widgets/mobile_layout.dart';
+import '../../widgets/responsive_layout.dart';
 import '../../providers/payments_provider.dart';
 
 class PaymentsScreen extends ConsumerStatefulWidget {
@@ -16,7 +17,7 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   final TextEditingController _searchController = TextEditingController();
-  String _statusFilter = 'All';
+
 
   @override
   void initState() {
@@ -45,12 +46,12 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return MobileLayout(
+    return ResponsiveLayout(
       currentRoute: '/payments',
       child: Container(
         color: const Color(0xFFF8FAFC),
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(24),
           child: AnimatedBuilder(
             animation: _fadeAnimation,
             builder: (context, child) {
@@ -60,7 +61,7 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildHeader(),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     _buildPaymentsList(),
                   ],
                 ),
@@ -73,140 +74,76 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
   }
 
   Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+    final payments = ref.watch(paymentsProvider);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Payment History',
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.textPrimary,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(12),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
                 ),
-                child: const Icon(
-                  Icons.account_balance_wallet,
-                  color: Color(0xFF10B981),
-                  size: 24,
-                ),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Payment History',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    Text(
-                      'Track all your medical payments',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-            ),
-            child: TextField(
-              controller: _searchController,
-              decoration: const InputDecoration(
-                hintText: 'Search by hospital name',
-                hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
-                prefixIcon: Icon(Icons.search, color: Color(0xFF6B7280)),
-                border: InputBorder.none,
-                contentPadding:
-                    EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.filter_list,
-                        color: Color(0xFF6B7280),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Filter by Status',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppTheme.textSecondary,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const Spacer(),
-                      DropdownButton<String>(
-                        value: _statusFilter,
-                        underline: const SizedBox(),
-                        icon: const Icon(Icons.keyboard_arrow_down,
-                            color: Color(0xFF6B7280), size: 20),
-                        items: ['All', 'Pending', 'Success'].map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(
-                              value,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (String? newValue) {
-                          setState(() {
-                            _statusFilter = newValue!;
-                          });
-                        },
-                      ),
-                    ],
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) => setState(() {}),
+                  decoration: const InputDecoration(
+                    hintText: 'Search by hospital name',
+                    hintStyle: TextStyle(color: Color(0xFF9CA3AF)),
+                    prefixIcon: Icon(Icons.search, color: Color(0xFF6B7280)),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                 ),
               ),
-            ],
+            ),
+            const SizedBox(width: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Row(
+                children: [
+                  const Text(
+                    'Status',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.filter_list, color: Color(0xFF6B7280), size: 16),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          'Total ${payments.length} payments',
+          style: const TextStyle(
+            fontSize: 14,
+            color: AppTheme.textSecondary,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -214,9 +151,6 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
     final payments = ref.watch(paymentsProvider);
     
     final filteredPayments = payments.where((payment) {
-      if (_statusFilter != 'All' && payment.status != _statusFilter) {
-        return false;
-      }
       if (_searchController.text.isNotEmpty &&
           !payment.hospitalName
               .toLowerCase()
@@ -226,7 +160,34 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
       return true;
     }).toList();
 
+    if (filteredPayments.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Center(
+          child: Text(
+            'No payments found',
+            style: TextStyle(
+              fontSize: 16,
+              color: AppTheme.textSecondary,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: filteredPayments.map((payment) => _buildPaymentCard(payment)).toList(),
+    );
+  }
+
+  Widget _buildPaymentCard(payment) {
     return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -239,124 +200,21 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
         ],
       ),
       child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Text(
-                  'Total ${filteredPayments.length} payments',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          if (filteredPayments.isEmpty)
-            const Padding(
-              padding: EdgeInsets.all(32),
-              child: Center(
-                child: Text(
-                  'No payments found',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ),
-            )
-          else
-            ...filteredPayments.map((payment) => _buildPaymentCard(payment)),
-          const Divider(height: 1),
-          Container(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1F2937),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: const Text(
-                    '1',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                Row(
-                  children: [
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text(
-                        'Previous',
-                        style: TextStyle(color: AppTheme.textSecondary),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text(
-                        'Next',
-                        style: TextStyle(color: AppTheme.textSecondary),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaymentCard(payment) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: payment.status == 'Pending'
-                      ? const Color(0xFFF59E0B).withOpacity(0.1)
-                      : const Color(0xFF10B981).withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: const Color(0xFF10B981).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(
-                  payment.status == 'Pending'
-                      ? Icons.schedule
-                      : Icons.check_circle,
-                  size: 24,
-                  color: payment.status == 'Pending'
-                      ? const Color(0xFFF59E0B)
-                      : const Color(0xFF10B981),
+                child: const Icon(
+                  Icons.local_hospital,
+                  color: Color(0xFF10B981),
+                  size: 20,
                 ),
               ),
               const SizedBox(width: 12),
@@ -368,12 +226,12 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
                       payment.hospitalName,
                       style: const TextStyle(
                         fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary,
                       ),
                     ),
                     Text(
-                      payment.date.toString().split(' ')[0],
+                      payment.disease,
                       style: const TextStyle(
                         fontSize: 14,
                         color: AppTheme.textSecondary,
@@ -383,49 +241,76 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
                 ),
               ),
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: payment.status == 'Pending'
-                      ? const Color(0xFFFEF3C7)
-                      : const Color(0xFFD1FAE5),
+                  color: const Color(0xFF10B981).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: payment.status == 'Pending'
-                            ? const Color(0xFFD97706)
-                            : const Color(0xFF059669),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      payment.status,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: payment.status == 'Pending'
-                            ? const Color(0xFFD97706)
-                            : const Color(0xFF059669),
-                      ),
-                    ),
-                  ],
+                child: const Text(
+                  'Success',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF10B981),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Transaction ID',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      payment.id.length > 15 ? '${payment.id.substring(0, 15)}...' : payment.id,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.textPrimary,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Date',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppTheme.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      DateFormat('d MMM yyyy').format(payment.date),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
                       'Amount',
@@ -435,62 +320,32 @@ class _PaymentsScreenState extends ConsumerState<PaymentsScreen>
                       ),
                     ),
                     Text(
-                      '₹${payment.amount}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Disease',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                    Text(
-                      payment.disease,
+                      '₹${payment.amount.toInt()}.00',
                       style: const TextStyle(
                         fontSize: 14,
-                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF10B981),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'ID: ${payment.id}',
-            style: const TextStyle(
-              fontSize: 12,
-              color: AppTheme.textSecondary,
-              fontFamily: 'monospace',
+              ],
             ),
           ),
           if (payment.description.isNotEmpty) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 12),
             Text(
               payment.description,
               style: const TextStyle(
-                fontSize: 12,
-                color: AppTheme.textSecondary,
+                fontSize: 14,
+                color: AppTheme.textPrimary,
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
         ],
       ),
     );
   }
+
+
 }

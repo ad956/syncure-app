@@ -37,7 +37,7 @@ class User {
       id: (json['id'] ?? json['_id'] ?? '').toString(),
       name: fullName.isNotEmpty ? fullName : 'User',
       email: (json['email'] ?? '').toString(),
-      image: json['image']?.toString() ?? json['profileImage']?.toString(),
+      image: json['image']?.toString() ?? json['profileImage']?.toString() ?? json['profile']?.toString(),
       role: (json['role'] ?? 'patient').toString(),
       phone: json['phone']?.toString(),
       age: json['age'] is int ? json['age'] : (json['age'] != null ? int.tryParse(json['age'].toString()) : null),

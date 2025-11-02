@@ -12,9 +12,14 @@ class PaymentsNotifier extends StateNotifier<List<Payment>> {
     try {
       final response = await _apiService.getPaymentHistory();
       if (response.statusCode == 200) {
-        final payments = (response.data as List)
-            .map((json) => Payment.fromJson(json))
-            .toList();
+        final data = response.data;
+        List<Payment> payments = [];
+        
+        if (data['success'] == true && data['data'] != null) {
+          final transactions = data['data']['transactions'] as List;
+          payments = transactions.map((json) => Payment.fromJson(json)).toList();
+        }
+        
         state = payments;
       }
     } catch (e) {

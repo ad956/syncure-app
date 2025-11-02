@@ -3,18 +3,78 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:iconsax/iconsax.dart';
 
 import '../../themes/app_theme.dart';
-import '../../widgets/mobile_layout.dart';
+import '../../widgets/responsive_layout.dart';
 
 class LabResultsScreen extends ConsumerWidget {
   const LabResultsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return MobileLayout(
+    return ResponsiveLayout(
       currentRoute: '/lab-results',
       child: Container(
         color: const Color(0xFFF8FAFC),
-        child: _buildResultsList(),
+        child: Column(
+          children: [
+            _buildHeaderCard(),
+            Expanded(child: _buildResultsList()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeaderCard() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFFF59E0B), Color(0xFFEAB308)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Iconsax.document_text,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Lab Results',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'View and download your test reports',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white70,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

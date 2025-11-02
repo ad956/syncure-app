@@ -15,7 +15,7 @@ import '../screens/lab_results/lab_results_screen.dart';
 import '../screens/health_records/health_records_screen.dart';
 import '../screens/doctors/doctors_screen.dart';
 import '../screens/error/page_not_found_screen.dart';
-import '../providers/auth_provider.dart';
+
 
 class AppRoutes {
   static const String splash = '/';

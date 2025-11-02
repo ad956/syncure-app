@@ -16,13 +16,21 @@ class NewDashboardNotifier extends StateNotifier<DashboardResponse?> {
       if (response.statusCode == 200) {
         developer.log('📋 Dashboard API Response: ${response.data}');
         _apiService.logApiResponse('/patient/dashboard', response.data);
-        final dashboardData = DashboardResponse.fromJson(response.data);
-        state = dashboardData;
-        developer.log('✅ Dashboard data loaded successfully');
+        
+        if (response.data['success'] == true) {
+          final dashboardData = DashboardResponse.fromJson(response.data);
+          state = dashboardData;
+          developer.log('✅ Dashboard data loaded successfully');
+        } else {
+          developer.log('⚠️ API returned success=false, using mock data');
+          state = _getMockDashboard();
+        }
+      } else {
+        developer.log('⚠️ API returned ${response.statusCode}, using mock data');
+        state = _getMockDashboard();
       }
     } catch (e) {
       developer.log('❌ Dashboard fetch error: $e');
-      // Set mock data on error
       state = _getMockDashboard();
     }
   }
@@ -78,6 +86,7 @@ class NewDashboardNotifier extends StateNotifier<DashboardResponse?> {
           todaysVitals: state!.todaysVitals,
           recentVitals: state!.recentVitals,
           medications: updatedMedications,
+          pendingBills: state!.pendingBills,
           progress: state!.progress,
         );
       }
@@ -94,12 +103,12 @@ class NewDashboardNotifier extends StateNotifier<DashboardResponse?> {
         firstname: 'John',
         email: 'john@example.com',
         contact: '+1 9876543210',
-        physicalDetails: PhysicalDetails(height: 175, weight: 70),
+        physicalDetails: PhysicalDetails(age: 21, blood: 'O+', height: 5.6, weight: 60),
         updatedAt: DateTime.now().toIso8601String(),
       ),
       healthMetrics: HealthMetrics(
         healthScore: 85,
-        activeMedications: 3,
+        activeMedications: 4, // From API medicines count
         bmiStatus: 'Normal',
         bmi: '22.9',
       ),
@@ -125,12 +134,48 @@ class NewDashboardNotifier extends StateNotifier<DashboardResponse?> {
       medications: [
         Medication(
           id: 'med_1',
-          name: 'Aspirin',
-          dosage: '100mg',
+          name: 'Metformin',
+          dosage: '500mg',
+          frequency: 'Twice daily',
+          instructions: 'Take with meals',
+          nextDose: '8:00 AM',
+          wasTaken: false,
+        ),
+        Medication(
+          id: 'med_2',
+          name: 'Lisinopril',
+          dosage: '10mg',
+          frequency: 'Once daily',
+          instructions: 'Take in morning',
+          nextDose: '8:00 AM',
+          wasTaken: false,
+        ),
+        Medication(
+          id: 'med_3',
+          name: 'Vitamin D3',
+          dosage: '1000 IU',
           frequency: 'Once daily',
           instructions: 'Take with food',
           nextDose: '8:00 AM',
           wasTaken: false,
+        ),
+      ],
+      pendingBills: [
+        PendingBill(
+          id: 'bill_1',
+          hospitalName: 'Solace Hospital',
+          hospitalProfile: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=150&h=150&fit=crop&crop=face',
+          amount: 250.00,
+          description: 'Consultation fee',
+          dueDate: DateTime.now().add(Duration(days: 5)),
+        ),
+        PendingBill(
+          id: 'bill_2',
+          hospitalName: 'City General Hospital',
+          hospitalProfile: 'https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=150&h=150&fit=crop&crop=face',
+          amount: 150.00,
+          description: 'Lab tests',
+          dueDate: DateTime.now().add(Duration(days: 10)),
         ),
       ],
       progress: Progress(

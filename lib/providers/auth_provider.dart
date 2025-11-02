@@ -212,7 +212,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         try {
           final profileResponse = await _apiService.getProfile();
           if (profileResponse.statusCode == 200) {
-            final user = User.fromJson(profileResponse.data);
+            final userData = profileResponse.data['data'] ?? profileResponse.data;
+            final user = User.fromJson(userData);
             state = AuthState(user: user);
             developer.log('✅ Session restored successfully');
           } else {
